@@ -1,0 +1,254 @@
+import 'package:flutter/material.dart';
+
+import '../../../app/app_assets.dart';
+import '../../../app/app_theme.dart';
+import '../../../app/ruta_facil_app.dart';
+import '../../routes/presentation/add_route_page.dart';
+import '../../routes/presentation/map_page.dart';
+import '../../routes/presentation/routes_page.dart';
+import '../../routes/presentation/search_destination_page.dart';
+import '../../share_location/presentation/share_location_page.dart';
+
+class HomePage extends StatelessWidget {
+  const HomePage({required this.userName, super.key});
+
+  final String userName;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = [
+      _HomeOption(
+        title: 'Buscar destino',
+        subtitle: 'Origen, destino, linea o sindicato',
+        icon: Icons.search,
+        color: AppTheme.minibus,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const SearchDestinationPage()),
+        ),
+      ),
+      _HomeOption(
+        title: 'Mapa',
+        subtitle: 'Elige transporte y mira su recorrido',
+        icon: Icons.map_outlined,
+        color: AppTheme.trufi,
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const MapPage())),
+      ),
+      _HomeOption(
+        title: 'Rutas guardadas',
+        subtitle: 'Tus recorridos frecuentes',
+        icon: Icons.bookmark_outline,
+        color: AppTheme.micro,
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const RoutesPage())),
+      ),
+      _HomeOption(
+        title: 'Agregar ruta',
+        subtitle: 'Graba o registra una ruta real',
+        icon: Icons.add_location_alt_outlined,
+        color: AppTheme.modified,
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const AddRoutePage())),
+      ),
+      _HomeOption(
+        title: 'Compartir ubicacion',
+        subtitle: 'Reporta cambios y datos colaborativos',
+        icon: Icons.my_location,
+        color: const Color(0xFF6D5BD0),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const ShareLocationPage())),
+      ),
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Ruta Facil El Alto'),
+        actions: [
+          IconButton(
+            tooltip: 'Tema',
+            onPressed: () => _showThemeSheet(context),
+            icon: const Icon(Icons.palette_outlined),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _HeroHeader(userName: userName),
+          const SizedBox(height: 16),
+          GridView.builder(
+            itemCount: options.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.92,
+            ),
+            itemBuilder: (context, index) => _HomeCard(option: options[index]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showThemeSheet(BuildContext context) {
+    final settings = AppSettingsScope.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Apariencia', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    icon: Icon(Icons.light_mode_outlined),
+                    label: Text('Naranja'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    icon: Icon(Icons.dark_mode_outlined),
+                    label: Text('Oscuro'),
+                  ),
+                ],
+                selected: {settings.themeMode},
+                onSelectionChanged: (selection) {
+                  settings.setThemeMode(selection.first);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HeroHeader extends StatelessWidget {
+  const _HeroHeader({required this.userName});
+
+  final String userName;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Image.asset(
+                    AppAssets.logo,
+                    height: 70,
+                    alignment: Alignment.centerLeft,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Hola, $userName',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Consulta rutas, cambios por feria y alternativas para moverte en El Alto.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Image.asset(AppAssets.mascot, width: 82),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeCard extends StatelessWidget {
+  const _HomeCard({required this.option});
+
+  final _HomeOption option;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: option.onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: option.color.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(option.icon, color: option.color),
+              ),
+              const Spacer(),
+              Text(
+                option.title,
+                style: Theme.of(context).textTheme.titleMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                option.subtitle,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeOption {
+  const _HomeOption({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+}
