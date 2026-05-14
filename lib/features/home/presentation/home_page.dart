@@ -10,15 +10,13 @@ import '../../routes/presentation/search_destination_page.dart';
 import '../../share_location/presentation/share_location_page.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({required this.userName, super.key});
-
-  final String userName;
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final options = [
       _HomeOption(
-        title: 'Buscar destino',
+        title: 'Buscar',
         subtitle: 'Origen, destino, linea o sindicato',
         icon: Icons.search,
         color: AppTheme.minibus,
@@ -27,8 +25,17 @@ class HomePage extends StatelessWidget {
         ),
       ),
       _HomeOption(
+        title: 'Grabar ruta',
+        subtitle: 'GPS, dia, hora, pasaje y recorrido real',
+        icon: Icons.fiber_manual_record,
+        color: AppTheme.modified,
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const AddRoutePage())),
+      ),
+      _HomeOption(
         title: 'Mapa',
-        subtitle: 'Elige transporte y mira su recorrido',
+        subtitle: 'Ver recorridos y buses simulados',
         icon: Icons.map_outlined,
         color: AppTheme.trufi,
         onTap: () => Navigator.of(
@@ -36,8 +43,8 @@ class HomePage extends StatelessWidget {
         ).push(MaterialPageRoute(builder: (_) => const MapPage())),
       ),
       _HomeOption(
-        title: 'Rutas guardadas',
-        subtitle: 'Tus recorridos frecuentes',
+        title: 'Grabadas',
+        subtitle: 'Recorridos recolectados en campo',
         icon: Icons.bookmark_outline,
         color: AppTheme.micro,
         onTap: () => Navigator.of(
@@ -45,17 +52,8 @@ class HomePage extends StatelessWidget {
         ).push(MaterialPageRoute(builder: (_) => const RoutesPage())),
       ),
       _HomeOption(
-        title: 'Agregar ruta',
-        subtitle: 'Graba o registra una ruta real',
-        icon: Icons.add_location_alt_outlined,
-        color: AppTheme.modified,
-        onTap: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const AddRoutePage())),
-      ),
-      _HomeOption(
-        title: 'Compartir ubicacion',
-        subtitle: 'Reporta cambios y datos colaborativos',
+        title: 'Reportar',
+        subtitle: 'Bloqueo, feria, trameaje o ruta cambiada',
         icon: Icons.my_location,
         color: const Color(0xFF6D5BD0),
         onTap: () => Navigator.of(
@@ -78,8 +76,26 @@ class HomePage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _HeroHeader(userName: userName),
+          _HeroHeader(
+            onRecord: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const AddRoutePage())),
+            onSearch: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SearchDestinationPage()),
+            ),
+          ),
           const SizedBox(height: 16),
+          _QuickSearchPanel(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SearchDestinationPage()),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Acciones principales',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 10),
           GridView.builder(
             itemCount: options.length,
             shrinkWrap: true,
@@ -139,9 +155,10 @@ class HomePage extends StatelessWidget {
 }
 
 class _HeroHeader extends StatelessWidget {
-  const _HeroHeader({required this.userName});
+  const _HeroHeader({required this.onRecord, required this.onSearch});
 
-  final String userName;
+  final VoidCallback onRecord;
+  final VoidCallback onSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -163,13 +180,30 @@ class _HeroHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Hola, $userName',
+                    'Recolector de rutas',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Consulta rutas, cambios por feria y alternativas para moverte en El Alto.',
+                    'Registra recorridos reales de El Alto con GPS, pasaje, dia y hora.',
                     style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: onRecord,
+                        icon: const Icon(Icons.fiber_manual_record),
+                        label: const Text('Grabar ruta'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: onSearch,
+                        icon: const Icon(Icons.search),
+                        label: const Text('Buscar'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -184,6 +218,45 @@ class _HeroHeader extends StatelessWidget {
               child: Image.asset(AppAssets.mascot, width: 82),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickSearchPanel extends StatelessWidget {
+  const _QuickSearchPanel({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              const Icon(Icons.search, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Buscar una ruta o destino',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    const Text('Ej. 204, Rio Seco, UPEA, Villa Adela'),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
         ),
       ),
     );

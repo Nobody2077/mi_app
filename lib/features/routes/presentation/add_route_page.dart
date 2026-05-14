@@ -5,8 +5,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/utils/geo_utils.dart';
-import '../data/mock_route_repository.dart';
+import '../data/route_repository_provider.dart';
 import '../domain/models/transit_route.dart';
+import '../domain/repositories/route_repository.dart';
 
 class AddRoutePage extends StatefulWidget {
   const AddRoutePage({super.key});
@@ -17,7 +18,7 @@ class AddRoutePage extends StatefulWidget {
 
 class _AddRoutePageState extends State<AddRoutePage> {
   final _formKey = GlobalKey<FormState>();
-  final _repository = const MockRouteRepository();
+  final RouteRepository _repository = RouteRepositoryProvider.instance;
 
   final _nameController = TextEditingController();
   final _syndicateController = TextEditingController();
@@ -27,13 +28,15 @@ class _AddRoutePageState extends State<AddRoutePage> {
   final _fareController = TextEditingController(text: '2');
   final _hoursController = TextEditingController(text: '06:00 - 22:00');
   final _descriptionController = TextEditingController();
-  final _speedController = TextEditingController(text: '18');
   final _stopsController = TextEditingController();
   final _pathController = TextEditingController();
   final _specialDaysController = TextEditingController(text: '4,7');
+  final _specialStartHourController = TextEditingController(text: '0');
+  final _specialEndHourController = TextEditingController(text: '23');
   final _specialDestinationController = TextEditingController();
   final _specialFareController = TextEditingController();
   final _specialPointLimitController = TextEditingController(text: '2');
+  final _specialCauseController = TextEditingController();
   final _specialNoteController = TextEditingController();
 
   TransportType _transportType = TransportType.minibus;
@@ -56,13 +59,15 @@ class _AddRoutePageState extends State<AddRoutePage> {
     _fareController.dispose();
     _hoursController.dispose();
     _descriptionController.dispose();
-    _speedController.dispose();
     _stopsController.dispose();
     _pathController.dispose();
     _specialDaysController.dispose();
+    _specialStartHourController.dispose();
+    _specialEndHourController.dispose();
     _specialDestinationController.dispose();
     _specialFareController.dispose();
     _specialPointLimitController.dispose();
+    _specialCauseController.dispose();
     _specialNoteController.dispose();
     _positionSubscription?.cancel();
     super.dispose();
@@ -107,9 +112,6 @@ class _AddRoutePageState extends State<AddRoutePage> {
                 '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}',
           )
           .join('\n');
-      if (_recordedPoints.length >= 2) {
-        _speedController.text = _averageSpeedKmh().toStringAsFixed(1);
-      }
     });
   }
 
@@ -201,10 +203,18 @@ class _AddRoutePageState extends State<AddRoutePage> {
         .map((stop) => stop.trim())
         .where((stop) => stop.isNotEmpty)
         .toList();
+    final now = DateTime.now();
+    final specialStartHour = _parseHour(_specialStartHourController.text);
+    final specialEndHour = _parseHour(_specialEndHourController.text);
     final specialFare = double.tryParse(_specialFareController.text.trim());
+    final specialCause = _specialCauseController.text.trim();
+    final specialNote = _specialNoteController.text.trim();
+    final variationReason = specialCause.isEmpty
+        ? specialNote
+        : [specialCause, if (specialNote.isNotEmpty) specialNote].join(': ');
 
     final route = TransitRoute(
-      id: 'manual-${DateTime.now().millisecondsSinceEpoch}',
+      id: 'manual-${now.millisecondsSinceEpoch}',
       name: _nameController.text.trim(),
       transportType: _transportType,
       syndicate: _syndicateController.text.trim(),
@@ -214,11 +224,15 @@ class _AddRoutePageState extends State<AddRoutePage> {
       fareBs: double.parse(_fareController.text.trim()),
       serviceHours: _hoursController.text.trim(),
       description: _descriptionController.text.trim(),
-      averageSpeedKmh: double.parse(_speedController.text.trim()),
+      averageSpeedKmh: _averageSpeedForSaving(),
       stops: stops.isEmpty
           ? [_originController.text.trim(), _destinationController.text.trim()]
           : stops,
       path: path,
+      createdAt: now,
+      recordedStartedAt: _startedAt,
+      recordedEndedAt: _endedAt ?? now,
+      variationReason: _hasSpecialRule ? variationReason : '',
       fareRules: [
         FareRule(
           label: 'Tarifa base',
@@ -231,6 +245,8 @@ class _AddRoutePageState extends State<AddRoutePage> {
             destination: _specialDestinationController.text.trim(),
             fareBs: specialFare,
             weekdays: _parseWeekdays(_specialDaysController.text),
+            startHour: specialStartHour,
+            endHour: specialEndHour,
           ),
       ],
       scheduleRules: [
@@ -241,13 +257,15 @@ class _AddRoutePageState extends State<AddRoutePage> {
             activeDestination: _specialDestinationController.text.trim().isEmpty
                 ? null
                 : _specialDestinationController.text.trim(),
+            startHour: specialStartHour,
+            endHour: specialEndHour,
             pathPointLimit: int.tryParse(
               _specialPointLimitController.text.trim(),
             ),
             fareOverrideBs: specialFare,
-            note: _specialNoteController.text.trim().isEmpty
+            note: variationReason.isEmpty
                 ? 'Esta ruta tiene cambios segun dia u horario.'
-                : _specialNoteController.text.trim(),
+                : variationReason,
           ),
       ],
     );
@@ -286,6 +304,11 @@ class _AddRoutePageState extends State<AddRoutePage> {
         .toList();
   }
 
+  int _parseHour(String text) {
+    final hour = int.tryParse(text.trim()) ?? 0;
+    return hour.clamp(0, 23).toInt();
+  }
+
   double _averageSpeedKmh() {
     final startedAt = _startedAt;
     final endedAt = _endedAt ?? DateTime.now();
@@ -297,6 +320,12 @@ class _AddRoutePageState extends State<AddRoutePage> {
     if (hours <= 0) return 0;
 
     return distanceKm / hours;
+  }
+
+  double _averageSpeedForSaving() {
+    final recordedAverage = _averageSpeedKmh();
+    if (recordedAverage > 0) return recordedAverage;
+    return 18;
   }
 
   void _showMessage(String message) {
@@ -379,28 +408,14 @@ class _AddRoutePageState extends State<AddRoutePage> {
               label: 'Destino',
               hint: 'Universidad UPEA',
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: _TextField(
-                    controller: _fareController,
-                    label: 'Tarifa Bs',
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _TextField(
-                    controller: _speedController,
-                    label: 'Velocidad km/h',
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
+            _TextField(
+              controller: _fareController,
+              label: 'Pasaje normal Bs',
+              keyboardType: TextInputType.number,
             ),
             _TextField(
               controller: _hoursController,
-              label: 'Horario',
+              label: 'Horario normal de servicio',
               hint: '06:00 - 22:00',
             ),
             _TextField(
@@ -424,22 +439,49 @@ class _AddRoutePageState extends State<AddRoutePage> {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: _hasSpecialRule,
-              title: const Text('Agregar regla especial'),
+              title: const Text('Agregar variacion de pasaje o recorrido'),
               subtitle: const Text(
-                'Usalo para feria, bloqueo, marcha, horario o trameaje.',
+                'Usalo para feria, bloqueo, marcha, horario, feriado o trameaje.',
               ),
               onChanged: (value) => setState(() => _hasSpecialRule = value),
             ),
             if (_hasSpecialRule) ...[
               _TextField(
                 controller: _specialDaysController,
-                label: 'Dias de la regla',
+                label: 'Dias donde aplica',
                 hint: '1=lun, 2=mar, 3=mie, 4=jue, 5=vie, 6=sab, 7=dom',
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _TextField(
+                      controller: _specialStartHourController,
+                      label: 'Desde hora',
+                      hint: '7',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _TextField(
+                      controller: _specialEndHourController,
+                      label: 'Hasta hora',
+                      hint: '10',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              _TextField(
+                controller: _specialCauseController,
+                label: 'Causa',
+                hint: 'Feria, bloqueo, marcha, paro, feriado, hora pico',
               ),
               _TextField(
                 controller: _specialDestinationController,
                 label: 'Destino en esos dias',
                 hint: 'Plaza Ballivian salida de combis',
+                required: false,
               ),
               Row(
                 children: [
@@ -448,6 +490,7 @@ class _AddRoutePageState extends State<AddRoutePage> {
                       controller: _specialFareController,
                       label: 'Tarifa especial Bs',
                       keyboardType: TextInputType.number,
+                      required: false,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -456,15 +499,17 @@ class _AddRoutePageState extends State<AddRoutePage> {
                       controller: _specialPointLimitController,
                       label: 'Puntos a mostrar',
                       keyboardType: TextInputType.number,
+                      required: false,
                     ),
                   ),
                 ],
               ),
               _TextField(
                 controller: _specialNoteController,
-                label: 'Motivo',
-                hint: 'Por feria, no llega hasta el destino final',
+                label: 'Detalle observado',
+                hint: 'No llega hasta destino final o cobra otro pasaje',
                 maxLines: 2,
+                required: false,
               ),
             ],
             const SizedBox(height: 8),
@@ -492,6 +537,7 @@ class _TextField extends StatelessWidget {
     this.hint,
     this.maxLines = 1,
     this.keyboardType,
+    this.required = true,
   });
 
   final TextEditingController controller;
@@ -499,6 +545,7 @@ class _TextField extends StatelessWidget {
   final String? hint;
   final int maxLines;
   final TextInputType? keyboardType;
+  final bool required;
 
   @override
   Widget build(BuildContext context) {
@@ -510,11 +557,13 @@ class _TextField extends StatelessWidget {
         keyboardType: keyboardType,
         decoration: InputDecoration(labelText: label, hintText: hint),
         validator: (value) {
-          if (value == null || value.trim().isEmpty) {
+          final text = value?.trim() ?? '';
+          if (required && text.isEmpty) {
             return 'Campo requerido';
           }
+          if (text.isEmpty) return null;
           if (keyboardType == TextInputType.number &&
-              double.tryParse(value.trim()) == null) {
+              double.tryParse(text) == null) {
             return 'Ingresa un numero valido';
           }
           return null;
@@ -549,6 +598,8 @@ class _RecordingPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final started = startedAt;
     final ended = endedAt;
+    final referenceEnd = ended ?? DateTime.now();
+    final duration = started == null ? null : referenceEnd.difference(started);
 
     return Card(
       child: Padding(
@@ -571,7 +622,14 @@ class _RecordingPanel extends StatelessWidget {
             const SizedBox(height: 8),
             const Text(
               'Presiona iniciar cuando subas al transporte y terminar cuando '
-              'bajes. La app guardara hora, dia, puntos y velocidad.',
+              'bajes. La app guardara automaticamente dia, hora, puntos y velocidad.',
+            ),
+            const SizedBox(height: 12),
+            _AutoRecordingSummary(
+              startedAt: started,
+              endedAt: ended,
+              duration: duration,
+              averageSpeedKmh: averageSpeedKmh,
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -591,11 +649,6 @@ class _RecordingPanel extends StatelessWidget {
                 ),
               ],
             ),
-            if (started != null) ...[
-              const SizedBox(height: 8),
-              Text('Inicio: ${_formatDateTime(started)}'),
-            ],
-            if (ended != null) Text('Fin: ${_formatDateTime(ended)}'),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -621,6 +674,66 @@ class _RecordingPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AutoRecordingSummary extends StatelessWidget {
+  const _AutoRecordingSummary({
+    required this.startedAt,
+    required this.endedAt,
+    required this.duration,
+    required this.averageSpeedKmh,
+  });
+
+  final DateTime? startedAt;
+  final DateTime? endedAt;
+  final Duration? duration;
+  final double averageSpeedKmh;
+
+  @override
+  Widget build(BuildContext context) {
+    final started = startedAt;
+    final ended = endedAt;
+    final elapsed = duration;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Datos automaticos de grabacion',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            started == null
+                ? 'Inicio: se registrara al presionar Iniciar'
+                : 'Inicio: ${_formatDateTime(started)}',
+          ),
+          Text(
+            ended == null
+                ? 'Fin: se registrara al presionar Terminar'
+                : 'Fin: ${_formatDateTime(ended)}',
+          ),
+          Text(
+            elapsed == null
+                ? 'Duracion: pendiente'
+                : 'Duracion: ${_formatDuration(elapsed)}',
+          ),
+          Text(
+            averageSpeedKmh <= 0
+                ? 'Velocidad promedio: pendiente'
+                : 'Velocidad promedio: ${averageSpeedKmh.toStringAsFixed(1)} km/h',
+          ),
+        ],
+      ),
+    );
+  }
 
   String _formatDateTime(DateTime value) {
     final date =
@@ -628,5 +741,14 @@ class _RecordingPanel extends StatelessWidget {
     final time =
         '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
     return '$date $time';
+  }
+
+  String _formatDuration(Duration value) {
+    final hours = value.inHours;
+    final minutes = value.inMinutes.remainder(60);
+    final seconds = value.inSeconds.remainder(60);
+    if (hours > 0) return '${hours}h ${minutes}m';
+    if (minutes > 0) return '${minutes}m ${seconds}s';
+    return '${seconds}s';
   }
 }

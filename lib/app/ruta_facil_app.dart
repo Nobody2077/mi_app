@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../features/auth/presentation/login_page.dart';
+import '../features/home/presentation/home_page.dart';
 import 'app_settings.dart';
 import 'app_theme.dart';
 
@@ -22,7 +22,7 @@ class RutaFacilApp extends StatelessWidget {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: settings.themeMode,
-            home: const LoginPage(),
+            home: const HomePage(),
           ),
         );
       },

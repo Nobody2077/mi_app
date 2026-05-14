@@ -25,6 +25,10 @@ class TransitRoute {
     required this.averageSpeedKmh,
     required this.stops,
     required this.path,
+    this.createdAt,
+    this.recordedStartedAt,
+    this.recordedEndedAt,
+    this.variationReason = '',
     this.isOfficial = false,
     this.scheduleRules = const [],
     this.fareRules = const [],
@@ -42,6 +46,10 @@ class TransitRoute {
   final String description;
   final double averageSpeedKmh;
   final List<String> stops;
+  final DateTime? createdAt;
+  final DateTime? recordedStartedAt;
+  final DateTime? recordedEndedAt;
+  final String variationReason;
   final bool isOfficial;
   final List<RouteScheduleRule> scheduleRules;
   final List<FareRule> fareRules;

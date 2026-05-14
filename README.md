@@ -5,12 +5,13 @@ de Rutas para el Transporte Urbano de El Alto".
 
 ## Alcance actual
 
-- Login demo.
-- Menu principal.
-- Busqueda de destinos y paradas.
+- Inicio directo sin login demo.
+- Menu principal orientado a recoleccion de rutas.
+- Base local inicia vacia para recolectar datos reales en campo.
+- Busqueda de destinos y paradas grabadas.
 - Lista de rutas digitalizadas con tiempo estimado.
-- Mapa con OpenStreetMap y buses simulados.
-- Pantalla para simular colaboracion GPS.
+- Mapa con OpenStreetMap y rutas registradas.
+- Registro de recorridos con GPS, dia, hora, pasaje y causa de variacion.
 - Servicios separados para ETA y deteccion basica de desvios.
 
 ## Estructura principal
@@ -19,8 +20,3 @@ de Rutas para el Transporte Urbano de El Alto".
 - `lib/core`: constantes y utilidades compartidas.
 - `lib/features`: modulos funcionales de la aplicacion.
 - `docs/propuesta_funcional.md`: funcionalidades, correcciones y dataset sugerido.
-
-## Credenciales demo
-
-- Usuario: `admin`
-- Contraseña: `1234`

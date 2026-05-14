@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_route_repository.dart';
+import '../data/route_export_service.dart';
+import '../data/route_repository_provider.dart';
 import '../domain/models/route_report.dart';
 import '../domain/models/transit_route.dart';
+import '../domain/repositories/route_repository.dart';
 import '../domain/services/eta_service.dart';
 import '../domain/services/route_availability_service.dart';
 import 'map_page.dart';
@@ -17,7 +19,8 @@ class RouteDetailPage extends StatefulWidget {
 }
 
 class _RouteDetailPageState extends State<RouteDetailPage> {
-  final _repository = const MockRouteRepository();
+  final RouteRepository _repository = RouteRepositoryProvider.instance;
+  final _exportService = const RouteExportService();
   final _etaService = const EtaService();
   final _availabilityService = const RouteAvailabilityService();
 
@@ -61,6 +64,46 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Reporte registrado.')));
+  }
+
+  Future<void> _exportRoute() async {
+    final box = context.findRenderObject() as RenderBox?;
+    await _exportService.shareRoute(
+      route: widget.route,
+      reports: _reports,
+      sharePositionOrigin: box == null
+          ? Rect.zero
+          : box.localToGlobal(Offset.zero) & box.size,
+    );
+  }
+
+  Future<void> _confirmDeleteRoute() async {
+    final route = widget.route;
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Borrar ruta'),
+        content: Text(
+          'Se borrara "${route.name}" de este dispositivo. Esta accion no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Borrar'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+    await _repository.deleteRoute(route.id);
+    if (!mounted) return;
+    Navigator.of(context).pop(true);
   }
 
   @override
@@ -114,6 +157,14 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
                   Text(
                     route.isOfficial ? 'Ruta oficial' : 'Ruta no verificada',
                   ),
+                  if (route.recordedStartedAt != null)
+                    Text(
+                      'Grabacion: ${_formatDateTime(route.recordedStartedAt!)}',
+                    ),
+                  if (route.recordedEndedAt != null)
+                    Text('Fin: ${_formatDateTime(route.recordedEndedAt!)}'),
+                  if (route.variationReason.isNotEmpty)
+                    Text('Causa observada: ${route.variationReason}'),
                   const SizedBox(height: 12),
                   Text(route.description),
                   const SizedBox(height: 12),
@@ -210,6 +261,21 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
             label: const Text('Reportar cambio o problema'),
           ),
           const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _exportRoute,
+            icon: const Icon(Icons.ios_share),
+            label: const Text('Exportar o compartir ruta'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _confirmDeleteRoute,
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Borrar ruta'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+          ),
+          const SizedBox(height: 12),
           if (_reports.isNotEmpty)
             Card(
               child: Padding(
@@ -244,6 +310,14 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
       TransportType.trufi => Icons.local_taxi,
       TransportType.micro => Icons.directions_bus,
     };
+  }
+
+  String _formatDateTime(DateTime value) {
+    final date =
+        '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+    final time =
+        '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+    return '$date $time';
   }
 }
 

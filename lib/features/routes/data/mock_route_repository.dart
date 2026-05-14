@@ -163,6 +163,13 @@ class MockRouteRepository implements RouteRepository {
   }
 
   @override
+  Future<void> deleteRoute(String routeId) async {
+    _routes.removeWhere((route) => route.id == routeId);
+    _savedRouteIds.remove(routeId);
+    _reports.removeWhere((report) => report.routeId == routeId);
+  }
+
+  @override
   Future<List<TransitRoute>> getSavedRoutes() async {
     await Future<void>.delayed(const Duration(milliseconds: 150));
     return _routes

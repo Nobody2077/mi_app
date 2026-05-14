@@ -4,9 +4,10 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../app/app_assets.dart';
 import '../../../app/app_theme.dart';
-import '../data/mock_route_repository.dart';
+import '../data/route_repository_provider.dart';
 import '../domain/models/bus_position.dart';
 import '../domain/models/transit_route.dart';
+import '../domain/repositories/route_repository.dart';
 import '../domain/services/deviation_detector.dart';
 import '../domain/services/eta_service.dart';
 import '../domain/services/road_route_service.dart';
@@ -26,7 +27,7 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   static const _elAltoCenter = LatLng(-16.5046, -68.1730);
 
-  final _repository = const MockRouteRepository();
+  final RouteRepository _repository = RouteRepositoryProvider.instance;
   final _etaService = const EtaService();
   final _deviationDetector = const DeviationDetector();
   final _roadRouteService = const RoadRouteService();
@@ -58,7 +59,7 @@ class _MapPageState extends State<MapPage> {
     final routes = await _repository.getRoutes();
     TransitRoute? selectedRoute;
 
-    if (widget.initialRouteId != null) {
+    if (widget.initialRouteId != null && routes.isNotEmpty) {
       selectedRoute = routes.firstWhere(
         (route) => route.id == widget.initialRouteId,
         orElse: () => routes.first,
@@ -271,12 +272,14 @@ class _MapPageState extends State<MapPage> {
                         isRoadSnapped: _isRoadSnapped,
                         activeInfo: activeInfo,
                         onOpenDetail: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  RouteDetailPage(route: selectedRoute),
-                            ),
-                          );
+                          Navigator.of(context)
+                              .push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      RouteDetailPage(route: selectedRoute),
+                                ),
+                              )
+                              .then((_) => _loadMapData());
                         },
                       ),
               ],
@@ -381,6 +384,14 @@ class _MapSummary extends StatelessWidget {
               'Bs ${(activeInfo?.fareBs ?? route.fareBs).toStringAsFixed(1)} - ${route.serviceHours} - '
               '${buses.length} buses - ${isRoadSnapped ? 'ruta por calles' : 'ruta manual'}',
             ),
+            if (route.recordedStartedAt != null) ...[
+              const SizedBox(height: 6),
+              Text('Grabada: ${_formatDateTime(route.recordedStartedAt!)}'),
+            ],
+            if (route.variationReason.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('Causa: ${route.variationReason}'),
+            ],
             if (activeInfo != null) ...[
               const SizedBox(height: 6),
               Text(
@@ -416,6 +427,14 @@ class _MapSummary extends StatelessWidget {
       TransportType.trufi => AppTheme.trufi,
       TransportType.micro => AppTheme.micro,
     };
+  }
+
+  String _formatDateTime(DateTime value) {
+    final date =
+        '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+    final time =
+        '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+    return '$date $time';
   }
 }
 

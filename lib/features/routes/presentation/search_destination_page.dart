@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/app_assets.dart';
-import '../data/mock_route_repository.dart';
+import '../data/route_repository_provider.dart';
 import '../domain/models/transit_route.dart';
+import '../domain/repositories/route_repository.dart';
 import 'route_detail_page.dart';
 
 class SearchDestinationPage extends StatefulWidget {
@@ -13,7 +14,7 @@ class SearchDestinationPage extends StatefulWidget {
 }
 
 class _SearchDestinationPageState extends State<SearchDestinationPage> {
-  final _repository = const MockRouteRepository();
+  final RouteRepository _repository = RouteRepositoryProvider.instance;
 
   List<TransitRoute> _routes = [];
   List<TransitRoute> _filteredRoutes = [];
@@ -203,12 +204,13 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                           '${route.stops.join(' -> ')}',
                         ),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          Navigator.of(context).push(
+                        onTap: () async {
+                          await Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => RouteDetailPage(route: route),
                             ),
                           );
+                          await _loadRoutes();
                         },
                       );
                     },

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_route_repository.dart';
+import '../data/route_export_service.dart';
+import '../data/route_repository_provider.dart';
 import '../domain/models/transit_route.dart';
+import '../domain/repositories/route_repository.dart';
 import '../domain/services/eta_service.dart';
 import 'add_route_page.dart';
 import 'map_page.dart';
@@ -15,7 +17,8 @@ class RoutesPage extends StatefulWidget {
 }
 
 class _RoutesPageState extends State<RoutesPage> {
-  final _repository = const MockRouteRepository();
+  final RouteRepository _repository = RouteRepositoryProvider.instance;
+  final _exportService = const RouteExportService();
   final _etaService = const EtaService();
 
   late Future<List<TransitRoute>> _routesFuture;
@@ -92,6 +95,8 @@ class _RoutesPageState extends State<RoutesPage> {
               return RouteCard(
                 route: route,
                 estimatedArrival: _etaService.estimateArrival(route),
+                onExport: () => _exportRoute(route),
+                onDelete: () => _confirmDeleteRoute(route),
                 onOpenMap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -105,5 +110,50 @@ class _RoutesPageState extends State<RoutesPage> {
         },
       ),
     );
+  }
+
+  Future<void> _exportRoute(TransitRoute route) async {
+    final box = context.findRenderObject() as RenderBox?;
+    final reports = await _repository.getReports(route.id);
+    if (!mounted) return;
+
+    await _exportService.shareRoute(
+      route: route,
+      reports: reports,
+      sharePositionOrigin: box == null
+          ? Rect.zero
+          : box.localToGlobal(Offset.zero) & box.size,
+    );
+  }
+
+  Future<void> _confirmDeleteRoute(TransitRoute route) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Borrar ruta'),
+        content: Text(
+          'Se borrara "${route.name}" de este dispositivo. Esta accion no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Borrar'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+    await _repository.deleteRoute(route.id);
+    if (!mounted) return;
+    _reload();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Ruta borrada.')));
   }
 }

@@ -8,12 +8,16 @@ class RouteCard extends StatelessWidget {
     required this.route,
     required this.estimatedArrival,
     required this.onOpenMap,
+    required this.onExport,
+    required this.onDelete,
     super.key,
   });
 
   final TransitRoute route;
   final Duration estimatedArrival;
   final VoidCallback onOpenMap;
+  final VoidCallback onExport;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -73,18 +77,40 @@ class RouteCard extends StatelessWidget {
             Text('Tarifa: Bs ${route.fareBs.toStringAsFixed(1)}'),
             const SizedBox(height: 8),
             Text('Horario: ${route.serviceHours}'),
+            if (route.recordedStartedAt != null) ...[
+              const SizedBox(height: 8),
+              Text('Grabada: ${_formatDateTime(route.recordedStartedAt!)}'),
+            ],
+            if (route.variationReason.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Observacion: ${route.variationReason}'),
+            ],
             const SizedBox(height: 8),
             Text(route.description),
             const SizedBox(height: 8),
             Text('Llegada estimada: ${estimatedArrival.inMinutes} min'),
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onOpenMap,
-                icon: const Icon(Icons.map_outlined),
-                label: const Text('Ver mapa'),
-              ),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TextButton.icon(
+                  onPressed: onExport,
+                  icon: const Icon(Icons.ios_share),
+                  label: const Text('Exportar'),
+                ),
+                TextButton.icon(
+                  onPressed: onOpenMap,
+                  icon: const Icon(Icons.map_outlined),
+                  label: const Text('Mapa'),
+                ),
+                IconButton.filledTonal(
+                  tooltip: 'Borrar ruta',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
             ),
           ],
         ),
@@ -106,5 +132,13 @@ class RouteCard extends StatelessWidget {
       TransportType.trufi => AppTheme.trufi,
       TransportType.micro => AppTheme.micro,
     };
+  }
+
+  String _formatDateTime(DateTime value) {
+    final date =
+        '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+    final time =
+        '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+    return '$date $time';
   }
 }

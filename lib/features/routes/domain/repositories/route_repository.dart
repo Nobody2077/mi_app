@@ -7,6 +7,8 @@ abstract class RouteRepository {
 
   Future<void> addRoute(TransitRoute route);
 
+  Future<void> deleteRoute(String routeId);
+
   Future<List<TransitRoute>> getSavedRoutes();
 
   Future<bool> isRouteSaved(String routeId);

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../routes/data/mock_route_repository.dart';
+import '../../routes/data/route_repository_provider.dart';
+import '../../routes/presentation/add_route_page.dart';
 import '../../routes/domain/models/route_report.dart';
+import '../../routes/domain/repositories/route_repository.dart';
 import '../../routes/domain/models/transit_route.dart';
 
 class ShareLocationPage extends StatefulWidget {
@@ -12,7 +14,7 @@ class ShareLocationPage extends StatefulWidget {
 }
 
 class _ShareLocationPageState extends State<ShareLocationPage> {
-  final _repository = const MockRouteRepository();
+  final RouteRepository _repository = RouteRepositoryProvider.instance;
   final _commentController = TextEditingController();
 
   List<TransitRoute> _routes = [];
@@ -86,12 +88,47 @@ class _ShareLocationPageState extends State<ShareLocationPage> {
             'conectara GPS real con permisos del usuario.',
           ),
           const SizedBox(height: 16),
+          if (_routes.isEmpty) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Todavia no hay rutas grabadas',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Primero registra una ruta real para poder enviar reportes sobre ella.',
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AddRoutePage(),
+                          ),
+                        );
+                        await _loadRoutes();
+                      },
+                      icon: const Icon(Icons.fiber_manual_record),
+                      label: const Text('Grabar primera ruta'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           DropdownButtonFormField<String>(
             initialValue: _selectedRoute?.id,
             decoration: const InputDecoration(
               labelText: 'Estoy en esta ruta',
               prefixIcon: Icon(Icons.alt_route),
             ),
+            hint: const Text('Sin rutas grabadas'),
             items: _routes
                 .map(
                   (route) => DropdownMenuItem(
@@ -159,7 +196,7 @@ class _ShareLocationPageState extends State<ShareLocationPage> {
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
-            onPressed: _sendReport,
+            onPressed: _selectedRoute == null ? null : _sendReport,
             icon: const Icon(Icons.send),
             label: const Text('Enviar dato'),
           ),
