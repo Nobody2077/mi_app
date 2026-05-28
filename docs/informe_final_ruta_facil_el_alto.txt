@@ -1,0 +1,398 @@
+MODELO OFICIAL DE INFORME FINAL
+Proyecto de Mineria de Datos Aplicado a un Caso Real en Bolivia
+
+Titulo del proyecto:
+Ruta Facil El Alto: sistema movil colaborativo para recolectar y analizar rutas del transporte urbano
+
+Portada
+
+Universidad: [Completar]
+Carrera: [Completar]
+Asignatura: Mineria de Datos
+Titulo del proyecto: Ruta Facil El Alto: sistema movil colaborativo para recolectar y analizar rutas del transporte urbano
+Integrantes: [Completar]
+Docente: [Completar]
+Fecha: 28 de mayo de 2026
+Ciudad: El Alto - Bolivia
+
+
+Resumen (Abstract)
+
+El presente proyecto aborda la falta de informacion clara, actualizada y digital sobre rutas del transporte publico urbano en la ciudad de El Alto, Bolivia. Para ello se desarrollo Ruta Facil El Alto, una aplicacion movil en Flutter orientada a registrar recorridos reales mediante GPS, guardar puntos de ruta, paradas, tarifas, horarios, tipo de transporte y reportes de variaciones como bloqueos, ferias o cambios de destino. El dataset inicial esta compuesto por rutas exportadas en formato JSON desde la app, con coordenadas geograficas, reglas de tarifa, reglas de horario y metadatos de grabacion. La tecnica principal aplicada en esta etapa es el analisis geoespacial descriptivo y la deteccion basica de anomalias por desviacion respecto a una ruta registrada. Tambien se incorpora una estimacion de tiempo de llegada basada en distancia recorrida y velocidad promedio. Los primeros patrones observados muestran variaciones de recorrido asociadas a bloqueos, velocidades promedio distintas entre rutas y necesidad de mayor volumen de datos para aplicar tecnicas avanzadas como clustering de zonas de alta demanda o prediccion de tiempos con datos historicos.
+
+Palabras clave: transporte urbano, mineria de datos, GPS, rutas, El Alto
+
+
+1. Introduccion
+
+El transporte publico en El Alto es una actividad cotidiana fundamental para estudiantes, trabajadores, comerciantes y familias. Sin embargo, muchas rutas de minibuses, trufis y micros no se encuentran documentadas de manera digital, cambian segun horarios, bloqueos, ferias o decisiones de los conductores, y suelen depender del conocimiento informal de los pasajeros.
+
+La mineria de datos permite transformar registros de movilidad en informacion util para descubrir patrones, detectar anomalias y apoyar decisiones. En este proyecto, la aplicacion Ruta Facil El Alto funciona como herramienta de recoleccion y consulta de datos de rutas urbanas. La app permite grabar recorridos con GPS, almacenar puntos de control, registrar tarifas, horarios y causas de variacion, visualizar rutas en mapa y exportar informacion para analisis posterior.
+
+El proposito del proyecto es construir una base inicial de datos geoespaciales del transporte urbano de El Alto y analizarla con enfoque de mineria de datos. El documento se organiza en delimitacion, justificacion, problema, objetivos, marco teorico, metodologia, descripcion del dataset, preparacion de datos, tecnicas aplicadas, evaluacion, resultados, discusion, conclusiones, recomendaciones, limitaciones y anexos.
+
+
+2. Delimitacion del estudio
+
+2.1 Delimitacion espacial
+
+El estudio se realiza en la ciudad de El Alto, Bolivia. El dataset inicial contiene recorridos ubicados aproximadamente entre las latitudes -16.503116 y -16.472083, y las longitudes -68.195894 y -68.164138. Las rutas registradas corresponden a recorridos urbanos relacionados con zonas como UPEA, Ceja, Ballivian, Puente Chino y Parada 204.
+
+2.2 Delimitacion temporal
+
+El analisis corresponde a los datos disponibles en el prototipo al 28 de mayo de 2026. Las rutas registradas contienen fechas de creacion, inicio y fin de grabacion generadas por la aplicacion.
+
+2.3 Delimitacion tematica
+
+El estudio se centra en rutas del transporte publico urbano de El Alto, especialmente minibuses. Incluye recorridos GPS, paradas, tarifa, horarios, tipo de transporte, reglas especiales y causas de variacion. No incluye transporte privado, bicicletas, taxis, transporte interdepartamental ni datos oficiales de trafico vehicular.
+
+2.4 Delimitacion de datos
+
+Se utilizan datos guardados por la aplicacion Ruta Facil El Alto y archivos JSON ubicados en assets/routes. El dataset inicial es pequeno y contiene dos rutas exportadas, por lo que los resultados deben considerarse exploratorios. No se cuenta todavia con encuestas masivas, historial largo de usuarios ni datos oficiales municipales.
+
+2.5 Delimitacion metodologica
+
+Se aplica analisis descriptivo geoespacial, estimacion de tiempo de llegada y deteccion basica de desviaciones respecto a una ruta registrada. No se aplica aun clasificacion supervisada ni reglas de asociacion completas porque el dataset inicial no tiene suficientes etiquetas, volumen ni transacciones historicas.
+
+
+3. Justificacion
+
+El proyecto es importante porque ayuda a resolver un problema real: la falta de informacion accesible y actualizada sobre rutas del transporte publico en El Alto. Muchas personas necesitan saber que movilidad tomar, por donde pasa, cuanto cuesta, en que horario funciona y si existen variaciones por bloqueos o ferias.
+
+3.1 Justificacion practica
+
+La app permite registrar rutas reales desde el telefono y consultarlas en un mapa. Esto ayuda a pasajeros, estudiantes y recolectores de datos a construir una base colaborativa de recorridos.
+
+3.2 Justificacion economica
+
+Una mejor informacion de rutas puede reducir tiempo perdido, recorridos equivocados y gastos adicionales por transbordos innecesarios. Tambien permite analizar tarifas y variaciones que afectan al usuario.
+
+3.3 Justificacion social
+
+Beneficia a usuarios del transporte publico, especialmente personas que no conocen una zona o que necesitan movilizarse de manera mas eficiente dentro de El Alto.
+
+3.4 Justificacion academica
+
+El proyecto permite aplicar conceptos de mineria de datos, KDD, CRISP-DM, limpieza de datos, analisis geoespacial, deteccion de anomalias y evaluacion de resultados en un caso boliviano real.
+
+3.5 Justificacion tecnologica
+
+La solucion usa Flutter, OpenStreetMap, SQLite local, geolocalizacion GPS, exportacion JSON y servicios internos para calcular ETA y detectar desviaciones. Esto permite conectar desarrollo movil con analisis de datos.
+
+3.6 Justificacion ambiental
+
+Al mejorar la informacion de rutas, el sistema podria contribuir indirectamente a reducir viajes innecesarios, tiempos de espera y recorridos ineficientes, lo cual puede disminuir consumo de combustible y congestion.
+
+
+4. Planteamiento del Problema
+
+4.1 Descripcion del problema
+
+En El Alto, varias rutas de transporte publico no estan digitalizadas o no se encuentran en plataformas accesibles para todos los pasajeros. Ademas, los recorridos pueden cambiar por bloqueos, ferias, trameaje, hora pico o decisiones operativas. Esta situacion dificulta planificar viajes y genera incertidumbre sobre recorrido, tarifa, destino final y tiempo aproximado de llegada.
+
+4.2 Pregunta de investigacion
+
+Que patrones de recorrido, tiempo, tarifa y variacion pueden descubrirse a partir de datos GPS recolectados por una aplicacion movil colaborativa para rutas del transporte publico de El Alto?
+
+
+5. Objetivos
+
+5.1 Objetivo General
+
+Aplicar tecnicas iniciales de mineria de datos y analisis geoespacial sobre rutas de transporte publico recolectadas con la aplicacion Ruta Facil El Alto para identificar patrones de recorrido, tiempos estimados y posibles variaciones operativas.
+
+5.2 Objetivos Especificos
+
+1. Preparar un dataset inicial con rutas, paradas, puntos GPS, tarifas, horarios y reportes.
+2. Aplicar analisis geoespacial descriptivo sobre las rutas registradas.
+3. Implementar estimacion de tiempo de llegada usando distancia y velocidad promedio.
+4. Detectar desviaciones basicas comparando una ubicacion actual contra la polilinea de ruta.
+5. Interpretar los resultados obtenidos y proponer mejoras para ampliar el dataset.
+
+
+6. Marco Teorico
+
+Mineria de datos:
+La mineria de datos es el proceso de descubrir patrones, relaciones y conocimiento util a partir de conjuntos de datos. En movilidad urbana puede utilizarse para identificar zonas de demanda, rutas frecuentes, tiempos atipicos, retrasos y comportamientos anormales.
+
+Proceso KDD:
+El KDD incluye seleccion de datos, limpieza, transformacion, mineria de datos, interpretacion y evaluacion. En este proyecto se seleccionan datos GPS generados por la app, se validan coordenadas y se interpretan recorridos.
+
+CRISP-DM:
+CRISP-DM organiza el proyecto en comprension del negocio, comprension de datos, preparacion, modelado, evaluacion y despliegue. Ruta Facil El Alto se alinea con este proceso porque parte de un problema real de movilidad y genera datos para analisis.
+
+Tecnicas utilizadas:
+- Deteccion de anomalias: identifica si una ubicacion esta fuera de la ruta esperada.
+- Analisis geoespacial: calcula distancias, rangos de coordenadas y trayectorias.
+- Estimacion de ETA: calcula tiempo aproximado de llegada usando distancia y velocidad promedio.
+- Clustering: se propone como trabajo futuro para identificar zonas de alta demanda cuando exista mayor cantidad de datos.
+- Clasificacion: se propone como trabajo futuro para clasificar eventos como bloqueo, trancadera o ruta normal con datos etiquetados.
+
+Metricas de evaluacion:
+- Error medio de tiempo estimado para ETA, cuando se tenga tiempo real observado.
+- Distancia a la ruta para deteccion de desviaciones.
+- Silhouette score para clustering futuro.
+- Precision y recall para clasificacion futura.
+
+
+7. Metodologia
+
+7.1 Comprension del negocio o problema
+
+El problema central es la falta de informacion confiable sobre rutas del transporte publico de El Alto. El usuario necesita saber que movilidad tomar, por donde pasa, cuanto cobra y si llega al destino final.
+
+7.2 Comprension de los datos
+
+La app recolecta datos de rutas con los siguientes elementos:
+- ruta: id, nombre, tipo de transporte, sindicato, linea, origen, destino, tarifa, horario y velocidad promedio.
+- stops: paradas principales.
+- points: coordenadas GPS ordenadas.
+- fare_rules: reglas de tarifa.
+- schedule_rules: reglas por horario, dia o variacion.
+- reports: reportes de usuarios sobre cambios, trancadera, parada modificada u otros.
+
+7.3 Preparacion de los datos
+
+La preparacion incluye:
+- Validar que cada punto tenga latitud y longitud.
+- Eliminar lineas vacias o coordenadas invalidas al ingresar manualmente.
+- Mantener el orden de puntos para formar la polilinea.
+- Guardar fechas en formato ISO.
+- Separar rutas, paradas, puntos y reportes en tablas SQLite.
+- Exportar los datos en JSON para analisis.
+
+7.4 Modelado
+
+El prototipo implementa:
+- Calculo de distancia de la ruta mediante polilinea GPS.
+- Estimacion de llegada: distancia / velocidad promedio.
+- Deteccion de desviacion: distancia entre ubicacion actual y recorrido registrado.
+
+7.5 Evaluacion
+
+La evaluacion actual es tecnica y exploratoria:
+- Las pruebas automatizadas de Flutter pasan correctamente.
+- El analisis estatico con flutter analyze no reporta problemas.
+- Las rutas JSON se decodifican correctamente.
+- La deteccion de desviacion requiere validacion en campo con mas datos.
+
+7.6 Interpretacion
+
+Los datos muestran que la app ya puede generar una base inicial de movilidad. Sin embargo, para obtener patrones mas robustos se requiere recolectar mas rutas, mas reportes y registros historicos por dia y hora.
+
+
+8. Descripcion del Dataset
+
+8.1 Fuente de datos
+
+La fuente de datos es la aplicacion Ruta Facil El Alto. Los archivos analizados se encuentran en:
+- assets/routes/ruta_facil_204_manual-1779759085763.json
+- assets/routes/ruta_facil_no_tiene_manual-1779730822843.json
+
+8.2 Caracteristicas
+
+Caracteristica | Descripcion
+Nro de registros | 2 rutas exportadas y 259 puntos GPS
+Nro de variables | Aproximadamente 20 campos principales por ruta, ademas de puntos, paradas, reglas y reportes
+Tipo de variables | Geograficas, temporales, numericas, categoricas y textuales
+Formato | JSON exportado desde la aplicacion
+
+Resumen del dataset inicial:
+
+Ruta | Linea | Origen | Destino | Tipo | Puntos GPS | Distancia aprox. | Velocidad promedio | Tarifa | Variacion
+Puente Chino, Final Castillo | 204 | Ballivian | Parada 204 | Minibus | 102 | 3.50 km | 19.87 km/h | Bs 2.00 | Bloqueo: no llega hasta su parada
+Ceja | no tiene | UPEA | Ceja | Minibus | 157 | 4.37 km | 14.37 km/h | Bs 2.00 | Bloqueo: No llega hasta el destino final
+
+
+9. Preparacion de los Datos
+
+Tratamiento de valores nulos:
+La app asigna valores por defecto cuando algunos campos estan vacios. Por ejemplo, si no se registra sindicato o linea, puede guardar "Desconocido". En los JSON actuales existen campos sin datos completos, como algunos reportes vacios.
+
+Normalizacion / codificacion:
+El tipo de transporte se codifica como minibus, trufi o micro. Las reglas de horario usan dias de la semana como numeros. Las fechas se almacenan en formato ISO.
+
+Seleccion de variables:
+Para el analisis inicial se seleccionan: ruta, linea, origen, destino, tarifa, velocidad promedio, puntos GPS, reglas especiales y causa de variacion.
+
+Reduccion de dimensionalidad:
+No aplica en esta etapa porque el dataset es pequeno. Se recomienda aplicarla cuando existan muchas variables historicas.
+
+
+10. Aplicacion de Tecnicas de Mineria de Datos
+
+10.1 Clasificacion
+
+No se aplica clasificacion supervisada en la version actual porque todavia no existe suficiente cantidad de datos etiquetados. Como trabajo futuro, se puede clasificar reportes en categorias como bloqueo, trancadera, feria, ruta normal o parada modificada.
+
+10.2 Clustering
+
+No se aplica clustering definitivo en esta etapa por el tamano reducido del dataset. Se recomienda aplicar K-means o DBSCAN cuando se recolecten mas puntos GPS y reportes, con el objetivo de identificar zonas de alta demanda, concentracion de paradas o segmentos con mayor variacion.
+
+10.3 Reglas de Asociacion
+
+No se aplican reglas de asociacion completas en esta etapa. Cuando existan mas reportes, se podrian buscar reglas como:
+- Si es hora pico y zona central, entonces aumenta la probabilidad de trancadera.
+- Si hay bloqueo en una avenida, entonces la ruta puede acortar destino.
+- Si es dia de feria, entonces puede cambiar el recorrido o la parada.
+
+10.4 Deteccion de anomalias
+
+La app incluye deteccion basica de desviaciones. Esta tecnica compara la ubicacion actual con la ruta registrada y marca posible anomalia si la distancia supera un umbral. Es util para detectar cuando un vehiculo se aleja del recorrido esperado.
+
+
+11. Evaluacion de Resultados
+
+Para la version actual se evaluan los siguientes aspectos:
+
+- Funcionamiento tecnico: flutter analyze no reporta errores.
+- Pruebas automatizadas: flutter test pasa correctamente.
+- Consistencia del dataset: los archivos JSON se decodifican y contienen rutas validas.
+- Distancia de recorridos: se calcularon aproximadamente 3.50 km para la ruta 204 y 4.37 km para la ruta UPEA-Ceja.
+- Velocidad promedio: 19.87 km/h en la ruta 204 y 14.37 km/h en la ruta UPEA-Ceja.
+
+Metricas pendientes para una etapa posterior:
+- MAE o RMSE para comparar ETA estimado contra tiempo real.
+- Precision y recall para deteccion de desvios.
+- Silhouette score para clustering de zonas.
+- Support, confidence y lift para reglas de asociacion.
+
+
+12. Resultados y Descubrimiento de Patrones
+
+Patrones encontrados en el dataset inicial:
+
+1. Ambas rutas registradas pertenecen al tipo Minibus.
+2. Ambas rutas tienen tarifa base de Bs 2.00.
+3. Las dos rutas contienen variaciones asociadas a bloqueo o destino incompleto.
+4. La ruta UPEA-Ceja tiene mayor cantidad de puntos GPS y mayor distancia aproximada que la ruta 204.
+5. La ruta 204 presenta mayor velocidad promedio registrada que la ruta UPEA-Ceja.
+6. Los datos evidencian que el sistema puede capturar recorridos reales y causas de variacion, pero requiere mas registros para patrones estadisticamente fuertes.
+
+Reglas relevantes preliminares:
+- En los casos observados, la causa "Bloqueo" se asocia con que la ruta no llegue al destino final.
+- La presencia de reglas especiales permite representar cambios de recorrido por horario, dia o evento.
+
+Segmentos identificados:
+- Recorrido Ballivian - Parada 204.
+- Recorrido UPEA - Ceja.
+
+Anomalias detectadas:
+- No existen reportes de anomalias de usuarios en los JSON actuales.
+- Si se usa la funcion de desviacion en tiempo real, una ubicacion fuera del umbral de ruta puede considerarse anomala.
+
+
+13. Visualizacion de Resultados
+
+La app permite visualizar rutas en un mapa con OpenStreetMap. Tambien muestra rutas, paradas y buses simulados. Para el informe final se recomienda incluir:
+
+- Captura de pantalla del mapa con la ruta 204.
+- Captura de pantalla del mapa con la ruta UPEA-Ceja.
+- Grafico de barras comparando distancia por ruta.
+- Grafico de barras comparando velocidad promedio por ruta.
+- Tabla de variaciones y causas registradas.
+- Mapa de calor o clusters cuando exista mayor cantidad de puntos GPS.
+
+
+14. Discusion
+
+Los resultados son utiles como primera evidencia de que una aplicacion movil puede recolectar datos estructurados sobre rutas del transporte publico de El Alto. La informacion de puntos GPS, tarifas, horarios y variaciones permite construir un dataset local que puede crecer con participacion colaborativa.
+
+La confiabilidad actual es limitada porque el dataset tiene solo dos rutas y no incluye validacion oficial. Aun asi, la estructura tecnica permite guardar mas rutas y exportarlas para analisis. La deteccion de desviacion es una aproximacion inicial, pero debe evaluarse en campo para determinar umbrales adecuados y reducir falsos positivos.
+
+
+15. Conclusiones
+
+Conclusion del objetivo general:
+Se desarrollo y analizo una base inicial para aplicar mineria de datos sobre rutas del transporte urbano de El Alto. La aplicacion permite recolectar datos GPS y generar informacion util para analisis geoespacial.
+
+Conclusiones por objetivos especificos:
+
+1. Se preparo un dataset inicial con 2 rutas, 259 puntos GPS, tarifas, horarios y reglas especiales.
+2. Se aplico analisis geoespacial descriptivo para calcular distancias aproximadas y comparar rutas.
+3. Se implemento una estimacion de llegada basada en distancia y velocidad promedio.
+4. Se incorporo deteccion basica de desviaciones mediante distancia entre ubicacion actual y recorrido registrado.
+5. Se identifico que el dataset necesita ampliarse para aplicar tecnicas avanzadas como clustering, clasificacion y reglas de asociacion.
+
+Descubrimientos clave:
+- Las variaciones registradas estan asociadas a bloqueos y destino incompleto.
+- Las rutas tienen velocidades promedio distintas.
+- La app ya funciona como recolector de datos para un proyecto de mineria de datos.
+
+Aporte del proyecto:
+El proyecto aporta una solucion tecnologica local para recolectar, organizar y analizar informacion del transporte publico de El Alto.
+
+
+16. Recomendaciones
+
+1. Recolectar al menos 30 a 50 rutas para obtener patrones mas representativos.
+2. Registrar varios viajes por ruta en diferentes horarios y dias.
+3. Agregar reportes de usuarios sobre trancadera, feria, bloqueo y parada modificada.
+4. Implementar un modulo de analisis en Python con Pandas y Scikit-learn.
+5. Aplicar DBSCAN para identificar concentraciones de puntos o paradas.
+6. Evaluar el ETA comparando tiempo estimado contra tiempo real.
+7. Crear un panel administrativo para revisar rutas y validar datos.
+
+
+17. Limitaciones
+
+- Dataset inicial pequeno.
+- No existen datos oficiales para comparar todas las rutas.
+- Los reportes de usuarios aun no tienen volumen suficiente.
+- La deteccion de desviacion depende de la precision GPS.
+- No se aplican aun algoritmos avanzados de mineria por falta de datos historicos.
+- Las rutas pueden cambiar por factores sociales dificiles de predecir, como bloqueos o ferias.
+
+
+18. Trabajo Futuro
+
+- Ampliar el dataset con mas rutas reales de El Alto.
+- Implementar backend con API REST y base de datos PostgreSQL/PostGIS.
+- Agregar usuarios y roles: pasajero, administrador y recolector.
+- Implementar clustering de zonas con alta demanda.
+- Crear modelos predictivos de tiempo de llegada.
+- Aplicar reglas de asociacion a reportes de usuarios.
+- Desarrollar dashboards con graficos de rutas, velocidades, variaciones y reportes.
+- Validar la informacion con conductores, pasajeros o fuentes municipales.
+
+
+19. Referencias Bibliograficas
+
+Han, J., Kamber, M., & Pei, J. (2012). Data Mining: Concepts and Techniques. Morgan Kaufmann.
+
+Provost, F., & Fawcett, T. (2013). Data Science for Business. O'Reilly Media.
+
+Shearer, C. (2000). The CRISP-DM model: The new blueprint for data mining. Journal of Data Warehousing, 5(4), 13-22.
+
+OpenStreetMap contributors. (2026). OpenStreetMap. https://www.openstreetmap.org
+
+Flutter. (2026). Flutter documentation. https://docs.flutter.dev
+
+
+20. Anexos
+
+Anexo A: Archivos principales de la aplicacion
+- lib/main.dart
+- lib/app/ruta_facil_app.dart
+- lib/features/routes/presentation/add_route_page.dart
+- lib/features/routes/presentation/map_page.dart
+- lib/features/routes/presentation/route_recording_controller.dart
+- lib/features/routes/domain/services/eta_service.dart
+- lib/features/routes/domain/services/deviation_detector.dart
+- lib/features/routes/data/local_route_repository.dart
+- lib/features/routes/data/route_export_service.dart
+
+Anexo B: Dataset inicial
+- assets/routes/ruta_facil_204_manual-1779759085763.json
+- assets/routes/ruta_facil_no_tiene_manual-1779730822843.json
+
+Anexo C: Pruebas
+- test/features/routes/data/route_json_codec_test.dart
+- test/widget_test.dart
+
+Anexo D: Comandos de verificacion ejecutados
+- flutter analyze
+- flutter test
+
+Anexo E: Observacion final
+La aplicacion cumple como prototipo recolector y visualizador de datos de rutas. Para cumplir completamente como proyecto final de mineria de datos, se recomienda ampliar el dataset y agregar un modulo de analisis con tecnicas como clustering, clasificacion, reglas de asociacion y evaluacion cuantitativa.

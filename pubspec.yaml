@@ -65,6 +65,7 @@ flutter:
 
   assets:
     - assets/brand/
+    - assets/routes/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -108,3 +109,6 @@ flutter_launcher_icons:
   image_path: assets/brand/app_icon.png
   adaptive_icon_background: "#E89A00"
   adaptive_icon_foreground: assets/brand/app_icon.png
+
+dependency_overrides:
+  path_provider_android: 2.2.12

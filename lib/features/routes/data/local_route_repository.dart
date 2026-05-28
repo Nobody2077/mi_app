@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
@@ -6,6 +9,7 @@ import '../domain/models/bus_position.dart';
 import '../domain/models/route_report.dart';
 import '../domain/models/transit_route.dart';
 import '../domain/repositories/route_repository.dart';
+import 'route_json_codec.dart';
 
 class LocalRouteRepository implements RouteRepository {
   LocalRouteRepository._();
@@ -17,6 +21,20 @@ class LocalRouteRepository implements RouteRepository {
     'ceja-rio-seco',
     'piloto-casa-u',
     'linea-204-ballivian-ceja',
+  ];
+  static const _bundledRouteSeeds = [
+    _BundledRouteSeed(
+      routeId: 'manual-1779730822843',
+      metadataKey: 'seeded_route_manual_1779730822843',
+      assetPath: 'assets/routes/ruta_facil_no_tiene_manual-1779730822843.json',
+      saveRoute: true,
+    ),
+    _BundledRouteSeed(
+      routeId: 'manual-1779759085763',
+      metadataKey: 'seeded_route_manual_1779759085763',
+      assetPath: 'assets/routes/ruta_facil_204_manual-1779759085763.json',
+      saveRoute: true,
+    ),
   ];
 
   Database? _database;
@@ -144,6 +162,7 @@ class LocalRouteRepository implements RouteRepository {
   @override
   Future<List<TransitRoute>> getRoutes() async {
     final db = await _db;
+    await _seedBundledRoutesIfNeeded(db);
     final routeRows = await db.query('routes', orderBy: 'created_at DESC');
     final routes = <TransitRoute>[];
     for (final row in routeRows) {
@@ -172,6 +191,7 @@ class LocalRouteRepository implements RouteRepository {
   @override
   Future<List<TransitRoute>> getSavedRoutes() async {
     final db = await _db;
+    await _seedBundledRoutesIfNeeded(db);
     final rows = await db.rawQuery('''
       SELECT routes.*
       FROM routes
@@ -183,6 +203,51 @@ class LocalRouteRepository implements RouteRepository {
       routes.add(await _routeFromRow(db, row));
     }
     return routes;
+  }
+
+  Future<void> _seedBundledRoutesIfNeeded(Database db) async {
+    for (final seed in _bundledRouteSeeds) {
+      final seeded = await db.query(
+        'metadata',
+        where: 'key = ?',
+        whereArgs: [seed.metadataKey],
+        limit: 1,
+      );
+      if (seeded.isNotEmpty) continue;
+
+      final existing = await db.query(
+        'routes',
+        columns: ['id'],
+        where: 'id = ?',
+        whereArgs: [seed.routeId],
+        limit: 1,
+      );
+
+      await db.transaction((txn) async {
+        if (existing.isEmpty) {
+          final route = await _loadBundledRoute(seed.assetPath);
+          await _insertRoute(txn, route, saveRoute: seed.saveRoute);
+        } else if (seed.saveRoute) {
+          await txn.insert('saved_routes', {
+            'route_id': seed.routeId,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+
+        await txn.insert('metadata', {
+          'key': seed.metadataKey,
+          'value': '1',
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      });
+    }
+  }
+
+  Future<TransitRoute> _loadBundledRoute(String assetPath) async {
+    final content = await rootBundle.loadString(assetPath);
+    final json = jsonDecode(content);
+    if (json is! Map<String, Object?>) {
+      throw const FormatException('Route JSON root must be an object.');
+    }
+    return const RouteJsonCodec().decodeRoute(json);
   }
 
   @override
@@ -472,4 +537,18 @@ class LocalRouteRepository implements RouteRepository {
         .whereType<int>()
         .toList(growable: false);
   }
+}
+
+class _BundledRouteSeed {
+  const _BundledRouteSeed({
+    required this.routeId,
+    required this.metadataKey,
+    required this.assetPath,
+    required this.saveRoute,
+  });
+
+  final String routeId;
+  final String metadataKey;
+  final String assetPath;
+  final bool saveRoute;
 }
