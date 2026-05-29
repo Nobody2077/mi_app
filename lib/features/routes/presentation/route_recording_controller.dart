@@ -43,6 +43,9 @@ class RouteRecordingController extends ChangeNotifier {
     return distanceKm / hours;
   }
 
+  double get distanceMeters =>
+      GeoUtils.polylineDistanceInMeters(_recordedPoints);
+
   double get averageSpeedForSaving {
     final avg = averageSpeedKmh;
     return avg > 0 ? avg : 18;

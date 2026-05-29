@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../data/route_repository_provider.dart';
@@ -334,13 +337,15 @@ class _AddRoutePageState extends State<AddRoutePage> {
               isRecording: _recordingController.isRecording,
               startedAt: _recordingController.startedAt,
               endedAt: _recordingController.endedAt,
-              pointsCount: _recordingController.pointsCount,
+              recordedPoints: _recordingController.recordedPoints,
+              distanceMeters: _recordingController.distanceMeters,
               currentSpeedKmh: _recordingController.currentSpeedKmh,
               averageSpeedKmh: _recordingController.averageSpeedKmh,
               onStart: _startRecording,
               onStop: _stopRecording,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            const _SectionHeader('Informacion basica'),
             DropdownButtonFormField<TransportType>(
               initialValue: _transportType,
               decoration: const InputDecoration(
@@ -377,6 +382,7 @@ class _AddRoutePageState extends State<AddRoutePage> {
               required: false,
               helperText: 'Opcional. Si no hay letrero visible deja este campo vacio.',
             ),
+            const _SectionHeader('Recorrido'),
             _TextField(
               controller: _originController,
               label: 'Origen',
@@ -387,6 +393,7 @@ class _AddRoutePageState extends State<AddRoutePage> {
               label: 'Destino',
               hint: 'Universidad UPEA',
             ),
+            const _SectionHeader('Tarifa y horario'),
             _TextField(
               controller: _fareController,
               label: 'Pasaje normal Bs',
@@ -422,7 +429,7 @@ class _AddRoutePageState extends State<AddRoutePage> {
               helperText:
                   'Se llena automaticamente al grabar. O copia coordenadas desde Google Maps (clic derecho sobre el punto).',
             ),
-            const SizedBox(height: 4),
+            const _SectionHeader('Variacion especial'),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: _hasSpecialRule,
@@ -617,12 +624,39 @@ class _DayChipSelector extends StatelessWidget {
   }
 }
 
-class _RecordingPanel extends StatelessWidget {
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const Divider(height: 12),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecordingPanel extends StatefulWidget {
   const _RecordingPanel({
     required this.isRecording,
     required this.startedAt,
     required this.endedAt,
-    required this.pointsCount,
+    required this.recordedPoints,
+    required this.distanceMeters,
     required this.currentSpeedKmh,
     required this.averageSpeedKmh,
     required this.onStart,
@@ -632,89 +666,224 @@ class _RecordingPanel extends StatelessWidget {
   final bool isRecording;
   final DateTime? startedAt;
   final DateTime? endedAt;
-  final int pointsCount;
+  final List<LatLng> recordedPoints;
+  final double distanceMeters;
   final double currentSpeedKmh;
   final double averageSpeedKmh;
   final VoidCallback onStart;
   final VoidCallback onStop;
 
   @override
+  State<_RecordingPanel> createState() => _RecordingPanelState();
+}
+
+class _RecordingPanelState extends State<_RecordingPanel> {
+  static const _elAltoCenter = LatLng(-16.5046, -68.1730);
+  final _mapController = MapController();
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isRecording) _startTicker();
+  }
+
+  @override
+  void didUpdateWidget(_RecordingPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.isRecording != oldWidget.isRecording) {
+      widget.isRecording ? _startTicker() : _stopTicker();
+    }
+
+    final points = widget.recordedPoints;
+    if (points.isNotEmpty) {
+      final oldLast = oldWidget.recordedPoints.isNotEmpty
+          ? oldWidget.recordedPoints.last
+          : null;
+      if (points.last != oldLast) {
+        _mapController.move(points.last, 16);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  void _startTicker() {
+    _ticker?.cancel();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _stopTicker() {
+    _ticker?.cancel();
+    _ticker = null;
+  }
+
+  String _formatElapsed() {
+    final start = widget.startedAt;
+    if (start == null) return '00:00';
+    final end = widget.endedAt ?? DateTime.now();
+    final elapsed = end.difference(start);
+    final h = elapsed.inHours;
+    final m = elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
+  String _formatDistance() {
+    final m = widget.distanceMeters;
+    if (m < 1000) return '${m.toStringAsFixed(0)} m';
+    return '${(m / 1000).toStringAsFixed(2)} km';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final started = startedAt;
-    final ended = endedAt;
+    final started = widget.startedAt;
+    final ended = widget.endedAt;
     final referenceEnd = ended ?? DateTime.now();
     final duration = started == null ? null : referenceEnd.difference(started);
+    final points = widget.recordedPoints;
+    final lastPoint = points.isNotEmpty ? points.last : null;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 220,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: const MapOptions(
+                initialCenter: _elAltoCenter,
+                initialZoom: 13,
+              ),
               children: [
-                const Icon(Icons.gps_fixed),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Grabar recorrido con GPS',
-                    style: Theme.of(context).textTheme.titleMedium,
+                TileLayer(
+                  urlTemplate:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.mi_app',
+                ),
+                if (points.length >= 2)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: points,
+                        color: Colors.blue,
+                        strokeWidth: 4,
+                      ),
+                    ],
                   ),
+                if (lastPoint != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: lastPoint,
+                        width: 20,
+                        height: 20,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: widget.isRecording
+                                ? Colors.green
+                                : Colors.orange,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.gps_fixed),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Grabar recorrido con GPS',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Presiona iniciar cuando subas al transporte y terminar cuando '
+                  'bajes. La app guardara automaticamente dia, hora, puntos y velocidad.',
+                ),
+                const SizedBox(height: 12),
+                _AutoRecordingSummary(
+                  startedAt: started,
+                  endedAt: ended,
+                  duration: duration,
+                  averageSpeedKmh: widget.averageSpeedKmh,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (started != null) ...[
+                      Chip(
+                        avatar: const Icon(Icons.timer_outlined, size: 16),
+                        label: Text(_formatElapsed()),
+                      ),
+                      Chip(
+                        avatar: const Icon(Icons.straighten, size: 16),
+                        label: Text(_formatDistance()),
+                      ),
+                    ],
+                    Chip(label: Text('Puntos: ${points.length}')),
+                    Chip(
+                      label: Text(
+                        'Vel: ${widget.currentSpeedKmh.toStringAsFixed(1)} km/h',
+                      ),
+                    ),
+                    Chip(
+                      label: Text(
+                        'Prom: ${widget.averageSpeedKmh.toStringAsFixed(1)} km/h',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: widget.isRecording ? null : widget.onStart,
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Iniciar'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: widget.isRecording ? widget.onStop : null,
+                        icon: const Icon(Icons.stop),
+                        label: const Text('Terminar'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Presiona iniciar cuando subas al transporte y terminar cuando '
-              'bajes. La app guardara automaticamente dia, hora, puntos y velocidad.',
-            ),
-            const SizedBox(height: 12),
-            _AutoRecordingSummary(
-              startedAt: started,
-              endedAt: ended,
-              duration: duration,
-              averageSpeedKmh: averageSpeedKmh,
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(label: Text('Puntos: $pointsCount')),
-                Chip(
-                  label: Text(
-                    'Velocidad: ${currentSpeedKmh.toStringAsFixed(1)} km/h',
-                  ),
-                ),
-                Chip(
-                  label: Text(
-                    'Promedio: ${averageSpeedKmh.toStringAsFixed(1)} km/h',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: isRecording ? null : onStart,
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Iniciar'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: isRecording ? onStop : null,
-                    icon: const Icon(Icons.stop),
-                    label: const Text('Terminar'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
