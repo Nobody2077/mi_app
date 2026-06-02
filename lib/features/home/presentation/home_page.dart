@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/app_assets.dart';
 import '../../../app/app_theme.dart';
 import '../../../app/ruta_facil_app.dart';
 import '../../routes/presentation/add_route_page.dart';
 import '../../routes/presentation/map_page.dart';
 import '../../routes/presentation/routes_page.dart';
 import '../../routes/presentation/search_destination_page.dart';
-import '../../share_location/presentation/share_location_page.dart';
+import '../../settings/presentation/settings_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final settings = AppSettingsScope.of(context);
+
     void goSearch() => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const SearchDestinationPage()),
         );
@@ -45,24 +46,16 @@ class HomePage extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const MapPage()),
         ),
       ),
-      _HomeOption(
-        title: 'Grabadas',
-        subtitle: 'Recorridos recolectados en campo',
-        icon: Icons.bookmark_outline,
-        color: AppTheme.micro,
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const RoutesPage()),
+      if (settings.isCollectorMode)
+        _HomeOption(
+          title: 'Grabadas',
+          subtitle: 'Recorridos recolectados en campo',
+          icon: Icons.bookmark_outline,
+          color: AppTheme.micro,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const RoutesPage()),
+          ),
         ),
-      ),
-      _HomeOption(
-        title: 'Reportar',
-        subtitle: 'Bloqueo, feria, trameaje o ruta cambiada',
-        icon: Icons.my_location,
-        color: const Color(0xFF6D5BD0),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ShareLocationPage()),
-        ),
-      ),
     ];
 
     return Scaffold(
@@ -70,16 +63,18 @@ class HomePage extends StatelessWidget {
         title: const Text('Ruta Facil El Alto'),
         actions: [
           IconButton(
-            tooltip: 'Tema',
-            onPressed: () => _showThemeSheet(context),
-            icon: const Icon(Icons.palette_outlined),
+            tooltip: 'Ajustes',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsPage()),
+            ),
+            icon: const Icon(Icons.settings_outlined),
           ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const _HeroHeader(),
+          _HeroHeader(isCollector: settings.isCollectorMode),
           const SizedBox(height: 16),
           GestureDetector(
             onTap: goSearch,
@@ -91,8 +86,10 @@ class HomePage extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          _HeroActionCard(option: heroOption),
+          if (settings.isCollectorMode) ...[
+            const SizedBox(height: 16),
+            _HeroActionCard(option: heroOption),
+          ],
           const SizedBox(height: 16),
           Text(
             'Mas opciones',
@@ -116,100 +113,34 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  void _showThemeSheet(BuildContext context) {
-    final settings = AppSettingsScope.of(context);
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Apariencia', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              SegmentedButton<ThemeMode>(
-                segments: const [
-                  ButtonSegment(
-                    value: ThemeMode.light,
-                    icon: Icon(Icons.light_mode_outlined),
-                    label: Text('Naranja'),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.dark,
-                    icon: Icon(Icons.dark_mode_outlined),
-                    label: Text('Oscuro'),
-                  ),
-                ],
-                selected: {settings.themeMode},
-                onSelectionChanged: (selection) {
-                  settings.setThemeMode(selection.first);
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
 class _HeroHeader extends StatelessWidget {
-  const _HeroHeader();
+  const _HeroHeader({required this.isCollector});
+
+  final bool isCollector;
 
   String _greeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Buenos dias, colector';
-    if (hour < 19) return 'Buenas tardes, colector';
-    return 'Buenas noches, colector';
+    final saludo = hour < 12 ? 'Buenos dias' : (hour < 19 ? 'Buenas tardes' : 'Buenas noches');
+    return isCollector ? '$saludo, colector' : saludo;
+  }
+
+  String _subtitle() {
+    return isCollector
+        ? 'Registra rutas reales de El Alto con GPS.'
+        : '¿A dónde quieres ir hoy?';
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Image.asset(
-                    AppAssets.logo,
-                    height: 52,
-                    alignment: Alignment.centerLeft,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    _greeting(),
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Registra rutas reales de El Alto con GPS.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: colors.primary.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Image.asset(AppAssets.mascot, width: 72),
-            ),
-          ],
-        ),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_greeting(), style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 2),
+        Text(_subtitle(), style: Theme.of(context).textTheme.bodySmall),
+      ],
     );
   }
 }

@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/utils/geo_utils.dart';
-import '../domain/models/transit_route.dart';
 
 enum RouteRecordingStartResult {
   started,
@@ -22,7 +22,6 @@ class RouteRecordingController extends ChangeNotifier {
   DateTime? _startedAt;
   DateTime? _endedAt;
   double _currentSpeedKmh = 0;
-  bool _needsTransportConfirmation = false;
 
   bool get isRecording => _isRecording;
   List<LatLng> get recordedPoints => List.unmodifiable(_recordedPoints);
@@ -30,7 +29,6 @@ class RouteRecordingController extends ChangeNotifier {
   DateTime? get startedAt => _startedAt;
   DateTime? get endedAt => _endedAt;
   double get currentSpeedKmh => _currentSpeedKmh;
-  bool get needsTransportConfirmation => _needsTransportConfirmation;
 
   double get averageSpeedKmh {
     final start = _startedAt;
@@ -68,13 +66,27 @@ class RouteRecordingController extends ChangeNotifier {
       return RouteRecordingStartResult.permissionDenied;
     }
 
+    // Android 13+: request notification permission for the foreground service.
+    // The service still runs if denied, but the status-bar notification won't appear.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await Permission.notification.request();
+    }
+
     _isRecording = true;
     _startedAt = DateTime.now();
     _endedAt = null;
     _recordedPoints.clear();
     _currentSpeedKmh = 0;
-    _needsTransportConfirmation = false;
     notifyListeners();
+
+    // Capture starting position immediately, before any movement triggers the stream.
+    try {
+      final initial = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      _addPosition(initial);
+    } catch (_) {}
 
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: _buildLocationSettings(),
@@ -88,16 +100,6 @@ class RouteRecordingController extends ChangeNotifier {
     _positionSubscription = null;
     _isRecording = false;
     _endedAt = DateTime.now();
-    notifyListeners();
-  }
-
-  void confirmTransportType(TransportType type) {
-    _needsTransportConfirmation = false;
-    notifyListeners();
-  }
-
-  void dismissTransportConfirmation() {
-    _needsTransportConfirmation = false;
     notifyListeners();
   }
 
@@ -137,10 +139,6 @@ class RouteRecordingController extends ChangeNotifier {
     if (_recordedPoints.isEmpty ||
         GeoUtils.distanceInMeters(_recordedPoints.last, point) >= 10) {
       _recordedPoints.add(point);
-    }
-
-    if (speedKmh >= 12 && !_needsTransportConfirmation) {
-      _needsTransportConfirmation = true;
     }
 
     notifyListeners();

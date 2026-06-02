@@ -3,36 +3,32 @@ import 'package:flutter/material.dart';
 class AppTheme {
   const AppTheme._();
 
-  static const Color primary = Color(0xFFE89A00);
-  static const Color secondary = Color(0xFF22577A);
   static const Color minibus = Color(0xFF22577A);
   static const Color trufi = Color(0xFF2D936C);
   static const Color micro = Color(0xFFE89A00);
   static const Color modified = Color(0xFFC2410C);
 
   static const Color _lightBackground = Color(0xFFFFF8E8);
-  static const Color _lightSurface = Color(0xFFFFEFC6);
   static const Color _lightCard = Color(0xFFFFF3D4);
   static const Color _darkBackground = Color(0xFF0F172A);
   static const Color _darkSurface = Color(0xFF182235);
   static const Color _darkCard = Color(0xFF223047);
 
-  static ThemeData get light {
+  static ThemeData light([Color seed = const Color(0xFFE89A00)]) {
     final scheme = ColorScheme.fromSeed(
-      seedColor: primary,
-      primary: primary,
-      secondary: secondary,
-      surface: _lightSurface,
+      seedColor: seed,
+      primary: seed,
+      surface: const Color(0xFFFFEFC6),
       error: modified,
       brightness: Brightness.light,
     );
 
-    return _theme(scheme).copyWith(
+    return _base(scheme).copyWith(
       scaffoldBackgroundColor: _lightBackground,
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: primary,
-        foregroundColor: Color(0xFF1C1400),
+        backgroundColor: seed,
+        foregroundColor: _contrastFor(seed),
         elevation: 0,
       ),
       cardTheme: _cardTheme(_lightCard, Colors.black.withValues(alpha: 0.08)),
@@ -43,17 +39,17 @@ class AppTheme {
     );
   }
 
-  static ThemeData get dark {
+  static ThemeData dark([Color seed = const Color(0xFFE89A00)]) {
+    final lightened = Color.lerp(seed, Colors.white, 0.3)!;
     final scheme = ColorScheme.fromSeed(
-      seedColor: primary,
-      primary: const Color(0xFFFFB833),
-      secondary: const Color(0xFF7CC5E8),
+      seedColor: seed,
+      primary: lightened,
       surface: _darkSurface,
       error: const Color(0xFFFF8A50),
       brightness: Brightness.dark,
     );
 
-    return _theme(scheme).copyWith(
+    return _base(scheme).copyWith(
       scaffoldBackgroundColor: _darkBackground,
       appBarTheme: const AppBarTheme(
         centerTitle: false,
@@ -69,14 +65,23 @@ class AppTheme {
     );
   }
 
-  static ThemeData _theme(ColorScheme scheme) {
+  // Returns black or white depending on which contrasts better with [color].
+  static Color _contrastFor(Color color) {
+    return ThemeData.estimateBrightnessForColor(color) == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF1C1400);
+  }
+
+  static ThemeData _base(ColorScheme scheme) {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
         ),
       ),
       chipTheme: ChipThemeData(

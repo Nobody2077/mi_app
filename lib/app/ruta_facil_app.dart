@@ -19,8 +19,8 @@ class RutaFacilApp extends StatelessWidget {
           child: MaterialApp(
             title: 'Ruta Facil El Alto',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
+            theme: AppTheme.light(settings.accentColor),
+            darkTheme: AppTheme.dark(settings.accentColor),
             themeMode: settings.themeMode,
             home: const HomePage(),
           ),

@@ -49,7 +49,6 @@ class _AddRoutePageState extends State<AddRoutePage> {
 
   TransportType _transportType = TransportType.minibus;
   bool _hasSpecialRule = false;
-  bool _transportDialogShowing = false;
   Set<int> _selectedDays = {};
   String? _selectedCause;
 
@@ -83,12 +82,6 @@ class _AddRoutePageState extends State<AddRoutePage> {
   }
 
   void _onRecordingUpdate() {
-    if (_recordingController.needsTransportConfirmation &&
-        !_transportDialogShowing &&
-        mounted) {
-      _transportDialogShowing = true;
-      _confirmTransportMode(_recordingController.currentSpeedKmh);
-    }
     if (mounted) setState(() {});
   }
 
@@ -145,45 +138,6 @@ class _AddRoutePageState extends State<AddRoutePage> {
         }
       }
     });
-  }
-
-  Future<void> _confirmTransportMode(double speedKmh) async {
-    final selectedType = await showDialog<TransportType>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Estas en transporte?'),
-        content: Text(
-          'Detectamos una velocidad de ${speedKmh.toStringAsFixed(1)} km/h. '
-          'Puedes registrar esta ruta como transporte publico.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(TransportType.micro),
-            child: const Text('Micro'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(TransportType.trufi),
-            child: const Text('Trufi'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(TransportType.minibus),
-            child: const Text('Minibus'),
-          ),
-        ],
-      ),
-    );
-
-    _transportDialogShowing = false;
-    if (selectedType != null) {
-      setState(() => _transportType = selectedType);
-      _recordingController.confirmTransportType(selectedType);
-    } else {
-      _recordingController.dismissTransportConfirmation();
-    }
   }
 
   Future<void> _saveRoute() async {
