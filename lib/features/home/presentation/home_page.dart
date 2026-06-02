@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_settings.dart';
 import '../../../app/app_theme.dart';
 import '../../../app/ruta_facil_app.dart';
 import '../../routes/presentation/add_route_page.dart';
@@ -8,154 +9,198 @@ import '../../routes/presentation/routes_page.dart';
 import '../../routes/presentation/search_destination_page.dart';
 import '../../settings/presentation/settings_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int _selectedIndex = 0;
+
+  void _goSearch() => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const SearchDestinationPage()),
+      );
+
+  void _goSettings() => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const SettingsPage()),
+      );
 
   @override
   Widget build(BuildContext context) {
     final settings = AppSettingsScope.of(context);
-
-    void goSearch() => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const SearchDestinationPage()),
-        );
-
-    final heroOption = _HomeOption(
-      title: 'Grabar ruta',
-      subtitle: 'GPS, dia, hora, pasaje y recorrido real',
-      icon: Icons.fiber_manual_record,
-      color: AppTheme.modified,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AddRoutePage()),
-      ),
-    );
-
-    final options = [
-      _HomeOption(
-        title: 'Buscar',
-        subtitle: 'Origen, destino, linea o sindicato',
-        icon: Icons.search,
-        color: AppTheme.minibus,
-        onTap: goSearch,
-      ),
-      _HomeOption(
-        title: 'Mapa',
-        subtitle: 'Ver recorridos y buses simulados',
-        icon: Icons.map_outlined,
-        color: AppTheme.trufi,
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const MapPage()),
-        ),
-      ),
-      if (settings.isCollectorMode)
-        _HomeOption(
-          title: 'Grabadas',
-          subtitle: 'Recorridos recolectados en campo',
-          icon: Icons.bookmark_outline,
-          color: AppTheme.micro,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const RoutesPage()),
-          ),
-        ),
-    ];
+    final int maxIndex = settings.isCollectorMode ? 2 : 1;
+    final int safeIndex = _selectedIndex.clamp(0, maxIndex);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ruta Facil El Alto'),
-        actions: [
-          IconButton(
-            tooltip: 'Ajustes',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsPage()),
-            ),
-            icon: const Icon(Icons.settings_outlined),
+      body: IndexedStack(
+        index: safeIndex,
+        children: [
+          _HomeTab(
+            settings: settings,
+            onSearch: _goSearch,
+            onOpenSettings: _goSettings,
           ),
+          const MapPage(),
+          if (settings.isCollectorMode)
+            const RoutesPage()
+          else
+            const SizedBox.shrink(),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _HeroHeader(isCollector: settings.isCollectorMode),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: goSearch,
-            child: AbsorbPointer(
-              child: SearchBar(
-                hintText: 'Ej. 204, Rio Seco, UPEA, Villa Adela',
-                leading: const Icon(Icons.search),
-                trailing: const [Icon(Icons.arrow_forward_ios, size: 14)],
-              ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: safeIndex,
+        onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+        destinations: [
+          const NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Inicio',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.map_outlined),
+            selectedIcon: Icon(Icons.map),
+            label: 'Mapa',
+          ),
+          if (settings.isCollectorMode)
+            const NavigationDestination(
+              icon: Icon(Icons.bookmark_outline),
+              selectedIcon: Icon(Icons.bookmark),
+              label: 'Grabadas',
             ),
-          ),
-          if (settings.isCollectorMode) ...[
-            const SizedBox(height: 16),
-            _HeroActionCard(option: heroOption),
-          ],
-          const SizedBox(height: 16),
-          Text(
-            'Mas opciones',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 10),
-          GridView.builder(
-            itemCount: options.length,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.92,
-            ),
-            itemBuilder: (context, index) => _HomeCard(option: options[index]),
-          ),
         ],
       ),
     );
   }
-
 }
 
-class _HeroHeader extends StatelessWidget {
-  const _HeroHeader({required this.isCollector});
+// ── Tab de inicio ────────────────────────────────────────────────────────────
 
-  final bool isCollector;
+class _HomeTab extends StatelessWidget {
+  const _HomeTab({
+    required this.settings,
+    required this.onSearch,
+    required this.onOpenSettings,
+  });
+
+  final AppSettings settings;
+  final VoidCallback onSearch;
+  final VoidCallback onOpenSettings;
 
   String _greeting() {
     final hour = DateTime.now().hour;
-    final saludo = hour < 12 ? 'Buenos dias' : (hour < 19 ? 'Buenas tardes' : 'Buenas noches');
-    return isCollector ? '$saludo, colector' : saludo;
+    final saludo =
+        hour < 12 ? 'Buenos días' : (hour < 19 ? 'Buenas tardes' : 'Buenas noches');
+    return settings.isCollectorMode ? '$saludo, colector' : saludo;
   }
 
-  String _subtitle() {
-    return isCollector
-        ? 'Registra rutas reales de El Alto con GPS.'
-        : '¿A dónde quieres ir hoy?';
-  }
+  String _subtitle() =>
+      settings.isCollectorMode ? 'Registra rutas reales' : '¿A dónde quieres ir?';
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final topPadding = MediaQuery.of(context).padding.top;
+    final onPrimary = colors.onPrimary;
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(_greeting(), style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 2),
-        Text(_subtitle(), style: Theme.of(context).textTheme.bodySmall),
+        // ── Header con color primario ────────────────────────────────────
+        Container(
+          color: colors.primary,
+          padding: EdgeInsets.fromLTRB(20, topPadding + 12, 8, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _greeting(),
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: onPrimary.withValues(alpha: 0.80),
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _subtitle(),
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: onPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.settings_outlined, color: onPrimary),
+                    tooltip: 'Ajustes',
+                    onPressed: onOpenSettings,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: onSearch,
+                child: AbsorbPointer(
+                  child: SearchBar(
+                    hintText: 'Ej. 204, Rio Seco, UPEA, Villa Adela',
+                    leading: const Icon(Icons.search),
+                    trailing: const [Icon(Icons.arrow_forward_ios, size: 14)],
+                    elevation: const WidgetStatePropertyAll(0),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── Cuerpo ──────────────────────────────────────────────────────
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (settings.isCollectorMode) ...[
+                _HeroActionCard(
+                  option: _HomeOption(
+                    title: 'Grabar ruta',
+                    subtitle: 'GPS, dia, hora, pasaje y recorrido real',
+                    icon: Icons.fiber_manual_record,
+                    color: AppTheme.modified,
+                    onTap: () {},
+                  ),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AddRoutePage()),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ],
     );
   }
 }
 
+// ── Widgets internos ─────────────────────────────────────────────────────────
+
 class _HeroActionCard extends StatelessWidget {
-  const _HeroActionCard({required this.option});
+  const _HeroActionCard({required this.option, required this.onTap});
 
   final _HomeOption option;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: option.onTap,
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -198,53 +243,6 @@ class _HeroActionCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Icon(Icons.arrow_forward_ios, color: option.color, size: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HomeCard extends StatelessWidget {
-  const _HomeCard({required this.option});
-
-  final _HomeOption option;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: option.onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: option.color.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(option.icon, color: option.color),
-              ),
-              const Spacer(),
-              Text(
-                option.title,
-                style: Theme.of(context).textTheme.titleMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                option.subtitle,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
             ],
           ),
         ),
