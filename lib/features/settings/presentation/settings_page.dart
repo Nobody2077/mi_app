@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../app/app_settings.dart';
+import '../../../app/app_theme.dart';
 import '../../../app/ruta_facil_app.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -101,6 +102,23 @@ class _AccentColorTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (settings.isCollectorMode) {
+      return ListTile(
+        enabled: false,
+        title: const Text('Color de acento'),
+        subtitle: const Text('Fijo mientras el modo colector esta activo'),
+        leading: PhosphorIcon(PhosphorIcons.palette()),
+        trailing: Container(
+          width: 30,
+          height: 30,
+          decoration: const BoxDecoration(
+            color: AppTheme.modified,
+            shape: BoxShape.circle,
+          ),
+        ),
+      );
+    }
+
     return ListTile(
       title: const Text('Color de acento'),
       subtitle: Text(AppSettings.accentColorLabels[settings.accentColorIndex]),

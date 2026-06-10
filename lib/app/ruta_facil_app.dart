@@ -14,13 +14,19 @@ class RutaFacilApp extends StatelessWidget {
     return AnimatedBuilder(
       animation: settings,
       builder: (context, _) {
+        // El modo colector fuerza un acento propio para que el modo de
+        // trabajo se distinga de un vistazo; el pasajero elige el suyo.
+        final accent = settings.isCollectorMode
+            ? AppTheme.modified
+            : settings.accentColor;
+
         return AppSettingsScope(
           settings: settings,
           child: MaterialApp(
             title: 'Ruta Facil El Alto',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(settings.accentColor),
-            darkTheme: AppTheme.dark(settings.accentColor),
+            theme: AppTheme.light(accent),
+            darkTheme: AppTheme.dark(accent),
             themeMode: settings.themeMode,
             home: const HomePage(),
           ),
