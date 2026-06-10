@@ -163,9 +163,15 @@ class _HeroHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_greeting(), style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 2),
-        Text(_subtitle(), style: Theme.of(context).textTheme.bodySmall),
+        Text(_greeting(), style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: 4),
+        Text(
+          _subtitle(),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+              ),
+        ),
       ],
     );
   }
@@ -217,7 +223,7 @@ class _HeroActionCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       option.subtitle,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
                 ),
@@ -269,7 +275,7 @@ class _HomeCard extends StatelessWidget {
                 option.subtitle,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),

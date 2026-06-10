@@ -66,7 +66,7 @@ class _ThemeTile extends StatelessWidget {
     return ListTile(
       title: const Text('Tema'),
       subtitle: Text(
-        settings.themeMode == ThemeMode.dark ? 'Oscuro' : 'Naranja',
+        settings.themeMode == ThemeMode.dark ? 'Oscuro' : 'Claro',
       ),
       leading: PhosphorIcon(
         settings.isDarkMode ? PhosphorIcons.moon() : PhosphorIcons.sun(),
@@ -76,7 +76,7 @@ class _ThemeTile extends StatelessWidget {
           ButtonSegment(
             value: ThemeMode.light,
             icon: PhosphorIcon(PhosphorIcons.sun()),
-            label: const Text('Naranja'),
+            label: const Text('Claro'),
           ),
           ButtonSegment(
             value: ThemeMode.dark,
