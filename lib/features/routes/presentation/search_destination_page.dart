@@ -29,11 +29,13 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
     _loadRoutes();
   }
 
+  bool get _hasQuery => _originQuery.isNotEmpty || _destinationQuery.isNotEmpty;
+
   Future<void> _loadRoutes() async {
     final routes = await _repository.getRoutes();
     setState(() {
       _routes = routes;
-      _filteredRoutes = routes;
+      _filteredRoutes = [];
     });
   }
 
@@ -64,9 +66,6 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
         ].join(' ').toLowerCase();
         final destinationText = [
           route.destination,
-          route.name,
-          route.line,
-          route.syndicate,
           ...route.stops,
         ].join(' ').toLowerCase();
         final matchesOrigin =
@@ -162,72 +161,75 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Rutas registradas en El Alto',
-                style: Theme.of(context).textTheme.titleSmall,
+          if (_hasQuery) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Resultados',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: const Text('Todos'),
-                    selected: _selectedTransportType == null,
-                    onSelected: (_) => _selectTransportType(null),
-                  ),
-                ),
-                for (final type in TransportType.values)
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
-                      avatar: Icon(_iconFor(type), size: 16),
-                      showCheckmark: false,
-                      label: Text(type.label),
-                      selected: _selectedTransportType == type,
-                      onSelected: (_) => _selectTransportType(type),
+                      label: const Text('Todos'),
+                      selected: _selectedTransportType == null,
+                      onSelected: (_) => _selectTransportType(null),
                     ),
                   ),
-              ],
+                  for (final type in TransportType.values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        avatar: Icon(_iconFor(type), size: 16),
+                        showCheckmark: false,
+                        label: Text(type.label),
+                        selected: _selectedTransportType == type,
+                        onSelected: (_) => _selectTransportType(type),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: _filteredRoutes.isEmpty
-                ? const _NoRoutesFound()
-                : ListView.builder(
-                    itemCount: _filteredRoutes.length,
-                    itemBuilder: (context, index) {
-                      final route = _filteredRoutes[index];
-                      return ListTile(
-                        leading: Icon(_iconFor(route.transportType)),
-                        title: Text(route.name),
-                        subtitle: Text(
-                          '${route.transportType.label} ${route.line} - '
-                          '${route.stops.join(' -> ')}',
-                        ),
-                        trailing: PhosphorIcon(PhosphorIcons.caretRight()),
-                        onTap: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => RouteDetailPage(route: route),
-                            ),
-                          );
-                          await _loadRoutes();
-                        },
-                      );
-                    },
-                  ),
-          ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: _filteredRoutes.isEmpty
+                  ? const _NoRoutesFound()
+                  : ListView.builder(
+                      itemCount: _filteredRoutes.length,
+                      itemBuilder: (context, index) {
+                        final route = _filteredRoutes[index];
+                        return ListTile(
+                          leading: Icon(_iconFor(route.transportType)),
+                          title: Text(route.name),
+                          subtitle: Text(
+                            '${route.transportType.label} ${route.line} - '
+                            '${route.stops.join(' -> ')}',
+                          ),
+                          trailing: PhosphorIcon(PhosphorIcons.caretRight()),
+                          onTap: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => RouteDetailPage(route: route),
+                              ),
+                            );
+                            await _loadRoutes();
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ] else
+            const Expanded(child: _SearchHint()),
         ],
       ),
     );
@@ -239,6 +241,36 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
       TransportType.trufi => PhosphorIcons.taxi(),
       TransportType.micro => PhosphorIcons.bus(),
     };
+  }
+}
+
+class _SearchHint extends StatelessWidget {
+  const _SearchHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(AppAssets.mascot, width: 110),
+            const SizedBox(height: 14),
+            Text(
+              '¿A dónde quieres ir?',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Escribe tu punto de partida y tu destino para ver las rutas disponibles.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
