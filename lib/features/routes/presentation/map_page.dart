@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -140,7 +141,7 @@ class _MapPageState extends State<MapPage> {
               ).push(MaterialPageRoute(builder: (_) => const AddRoutePage()));
               await _loadMapData();
             },
-            icon: const Icon(Icons.add_location_alt_outlined),
+            icon: PhosphorIcon(PhosphorIcons.mapPin()),
           ),
         ],
       ),
@@ -174,6 +175,8 @@ class _MapPageState extends State<MapPage> {
                               Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: ChoiceChip(
+                                  avatar: Icon(_iconFor(type), size: 16),
+                                  showCheckmark: false,
                                   label: Text(type.label),
                                   selected: _selectedTransportType == type,
                                   onSelected: (_) => _selectTransportType(type),
@@ -185,9 +188,9 @@ class _MapPageState extends State<MapPage> {
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
                         initialValue: selectedRouteId,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Selecciona una ruta',
-                          prefixIcon: Icon(Icons.alt_route),
+                          prefixIcon: PhosphorIcon(PhosphorIcons.path()),
                         ),
                         items: visibleRoutes
                             .map(
@@ -237,8 +240,8 @@ class _MapPageState extends State<MapPage> {
                                 point: point,
                                 width: 42,
                                 height: 42,
-                                child: const Icon(
-                                  Icons.location_pin,
+                                child: PhosphorIcon(
+                                  PhosphorIcons.mapPin(PhosphorIconsStyle.fill),
                                   color: Colors.orange,
                                 ),
                               ),
@@ -289,9 +292,9 @@ class _MapPageState extends State<MapPage> {
 
   IconData _iconFor(TransportType type) {
     return switch (type) {
-      TransportType.minibus => Icons.airport_shuttle,
-      TransportType.trufi => Icons.local_taxi,
-      TransportType.micro => Icons.directions_bus,
+      TransportType.minibus => PhosphorIcons.van(),
+      TransportType.trufi => PhosphorIcons.taxi(),
+      TransportType.micro => PhosphorIcons.bus(),
     };
   }
 }
@@ -370,7 +373,7 @@ class _MapSummary extends StatelessWidget {
                   ),
                 ),
                 Chip(
-                  avatar: Icon(Icons.schedule, color: color, size: 16),
+                  avatar: PhosphorIcon(PhosphorIcons.clock(), color: color, size: 16),
                   label: Text('${eta.inMinutes} min'),
                 ),
               ],
@@ -410,7 +413,7 @@ class _MapSummary extends StatelessWidget {
                 const _LegendItem(color: Colors.green, label: 'Bus activo'),
                 TextButton.icon(
                   onPressed: onOpenDetail,
-                  icon: const Icon(Icons.info_outline),
+                  icon: PhosphorIcon(PhosphorIcons.info()),
                   label: const Text('Detalle'),
                 ),
               ],
@@ -449,7 +452,7 @@ class _LegendItem extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.circle, color: color, size: 10),
+        PhosphorIcon(PhosphorIcons.circle(PhosphorIconsStyle.fill), color: color, size: 10),
         const SizedBox(width: 4),
         Text(label),
       ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../app/app_settings.dart';
 import '../../../app/ruta_facil_app.dart';
@@ -27,7 +28,7 @@ class SettingsPage extends StatelessWidget {
                 value: settings.isCollectorMode,
                 title: const Text('Modo colector'),
                 subtitle: const Text('Activa opciones para grabar rutas en campo'),
-                secondary: const Icon(Icons.fiber_manual_record),
+                secondary: PhosphorIcon(PhosphorIcons.record(PhosphorIconsStyle.fill)),
                 onChanged: settings.setCollectorMode,
               ),
             ],
@@ -67,20 +68,20 @@ class _ThemeTile extends StatelessWidget {
       subtitle: Text(
         settings.themeMode == ThemeMode.dark ? 'Oscuro' : 'Naranja',
       ),
-      leading: Icon(
-        settings.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+      leading: PhosphorIcon(
+        settings.isDarkMode ? PhosphorIcons.moon() : PhosphorIcons.sun(),
       ),
       trailing: SegmentedButton<ThemeMode>(
-        segments: const [
+        segments: [
           ButtonSegment(
             value: ThemeMode.light,
-            icon: Icon(Icons.light_mode_outlined),
-            label: Text('Naranja'),
+            icon: PhosphorIcon(PhosphorIcons.sun()),
+            label: const Text('Naranja'),
           ),
           ButtonSegment(
             value: ThemeMode.dark,
-            icon: Icon(Icons.dark_mode_outlined),
-            label: Text('Oscuro'),
+            icon: PhosphorIcon(PhosphorIcons.moon()),
+            label: const Text('Oscuro'),
           ),
         ],
         selected: {settings.themeMode},
@@ -103,7 +104,7 @@ class _AccentColorTile extends StatelessWidget {
     return ListTile(
       title: const Text('Color de acento'),
       subtitle: Text(AppSettings.accentColorLabels[settings.accentColorIndex]),
-      leading: const Icon(Icons.palette_outlined),
+      leading: PhosphorIcon(PhosphorIcons.palette()),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(AppSettings.accentColors.length, (i) {
@@ -131,7 +132,7 @@ class _AccentColorTile extends StatelessWidget {
                       : null,
                 ),
                 child: selected
-                    ? Icon(Icons.check, size: 16, color: _contrastFor(color))
+                    ? PhosphorIcon(PhosphorIcons.check(PhosphorIconsStyle.bold), size: 16, color: _contrastFor(color))
                     : null,
               ),
             ),
@@ -163,7 +164,7 @@ class _LanguageTile extends StatelessWidget {
     return ListTile(
       title: const Text('Idioma'),
       subtitle: Text(_labels[settings.language]!),
-      leading: const Icon(Icons.language_outlined),
+      leading: PhosphorIcon(PhosphorIcons.globe()),
       trailing: DropdownButton<AppLanguage>(
         value: settings.language,
         underline: const SizedBox.shrink(),

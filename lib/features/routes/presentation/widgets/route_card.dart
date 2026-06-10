@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../app/app_theme.dart';
 import '../../domain/models/transit_route.dart';
@@ -97,18 +98,18 @@ class RouteCard extends StatelessWidget {
               children: [
                 TextButton.icon(
                   onPressed: onExport,
-                  icon: const Icon(Icons.ios_share),
+                  icon: PhosphorIcon(PhosphorIcons.shareNetwork()),
                   label: const Text('Exportar'),
                 ),
                 TextButton.icon(
                   onPressed: onOpenMap,
-                  icon: const Icon(Icons.map_outlined),
+                  icon: PhosphorIcon(PhosphorIcons.mapTrifold()),
                   label: const Text('Mapa'),
                 ),
                 IconButton.filledTonal(
                   tooltip: 'Borrar ruta',
                   onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline),
+                  icon: PhosphorIcon(PhosphorIcons.trash()),
                 ),
               ],
             ),
@@ -120,9 +121,9 @@ class RouteCard extends StatelessWidget {
 
   IconData _iconFor(TransportType type) {
     return switch (type) {
-      TransportType.minibus => Icons.airport_shuttle,
-      TransportType.trufi => Icons.local_taxi,
-      TransportType.micro => Icons.directions_bus,
+      TransportType.minibus => PhosphorIcons.van(),
+      TransportType.trufi => PhosphorIcons.taxi(),
+      TransportType.micro => PhosphorIcons.bus(),
     };
   }
 

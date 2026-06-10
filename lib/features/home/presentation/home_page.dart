@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../app/ruta_facil_app.dart';
+import '../../routes/data/route_repository_provider.dart';
 import '../../routes/presentation/add_route_page.dart';
+import '../../routes/presentation/available_now_page.dart';
+import '../../routes/presentation/favorites_page.dart';
 import '../../routes/presentation/map_page.dart';
 import '../../routes/presentation/routes_page.dart';
 import '../../routes/presentation/search_destination_page.dart';
@@ -22,7 +27,7 @@ class HomePage extends StatelessWidget {
     final heroOption = _HomeOption(
       title: 'Grabar ruta',
       subtitle: 'GPS, dia, hora, pasaje y recorrido real',
-      icon: Icons.fiber_manual_record,
+      icon: PhosphorIcons.record(PhosphorIconsStyle.fill),
       color: AppTheme.modified,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const AddRoutePage()),
@@ -30,17 +35,20 @@ class HomePage extends StatelessWidget {
     );
 
     final options = [
-      _HomeOption(
-        title: 'Buscar',
-        subtitle: 'Origen, destino, linea o sindicato',
-        icon: Icons.search,
-        color: AppTheme.minibus,
-        onTap: goSearch,
-      ),
+      if (!settings.isCollectorMode)
+        _HomeOption(
+          title: 'Rutas favoritas',
+          subtitle: 'Tus líneas guardadas, listas en un tap',
+          icon: PhosphorIcons.star(),
+          color: AppTheme.micro,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const FavoritesPage()),
+          ),
+        ),
       _HomeOption(
         title: 'Mapa',
         subtitle: 'Ver recorridos y buses simulados',
-        icon: Icons.map_outlined,
+        icon: PhosphorIcons.mapTrifold(),
         color: AppTheme.trufi,
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const MapPage()),
@@ -50,7 +58,7 @@ class HomePage extends StatelessWidget {
         _HomeOption(
           title: 'Grabadas',
           subtitle: 'Recorridos recolectados en campo',
-          icon: Icons.bookmark_outline,
+          icon: PhosphorIcons.bookmarkSimple(),
           color: AppTheme.micro,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const RoutesPage()),
@@ -58,18 +66,39 @@ class HomePage extends StatelessWidget {
         ),
     ];
 
+    final appBarFg = Theme.of(context).appBarTheme.foregroundColor ?? Colors.white;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ruta Facil El Alto'),
-        actions: [
-          IconButton(
-            tooltip: 'Ajustes',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsPage()),
+        toolbarHeight: 80,
+        automaticallyImplyLeading: false,
+        titleSpacing: 20,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: PhosphorIcon(PhosphorIcons.gearSix(), size: 22, color: appBarFg),
+              ),
             ),
-            icon: const Icon(Icons.settings_outlined),
-          ),
-        ],
+            Text(
+              'Ruta Fácil',
+              style: GoogleFonts.poppins(
+                fontSize: 30,
+                fontWeight: FontWeight.w900,
+                color: appBarFg,
+                height: 1.0,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -81,8 +110,8 @@ class HomePage extends StatelessWidget {
             child: AbsorbPointer(
               child: SearchBar(
                 hintText: 'Ej. 204, Rio Seco, UPEA, Villa Adela',
-                leading: const Icon(Icons.search),
-                trailing: const [Icon(Icons.arrow_forward_ios, size: 14)],
+                leading: PhosphorIcon(PhosphorIcons.magnifyingGlass()),
+                trailing: [PhosphorIcon(PhosphorIcons.caretRight(), size: 14)],
               ),
             ),
           ),
@@ -108,6 +137,10 @@ class HomePage extends StatelessWidget {
             ),
             itemBuilder: (context, index) => _HomeCard(option: options[index]),
           ),
+          if (!settings.isCollectorMode) ...[
+            const SizedBox(height: 12),
+            const _AvailableNowCard(),
+          ],
         ],
       ),
     );
@@ -197,7 +230,7 @@ class _HeroActionCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_ios, color: option.color, size: 16),
+              PhosphorIcon(PhosphorIcons.arrowRight(), color: option.color, size: 16),
             ],
           ),
         ),
@@ -267,4 +300,106 @@ class _HomeOption {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+}
+
+class _AvailableNowCard extends StatefulWidget {
+  const _AvailableNowCard();
+
+  @override
+  State<_AvailableNowCard> createState() => _AvailableNowCardState();
+}
+
+class _AvailableNowCardState extends State<_AvailableNowCard> {
+  int? _count;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final routes = await RouteRepositoryProvider.instance.getRoutes();
+    final now = DateTime.now();
+    final count = routes
+        .where(
+          (r) =>
+              r.scheduleRules.isEmpty ||
+              r.scheduleRules.any((rule) => rule.appliesAt(now)),
+        )
+        .length;
+    if (mounted) setState(() => _count = count);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const color = AppTheme.minibus;
+    final subtitle = _count == null
+        ? 'Verificando...'
+        : _count == 0
+            ? 'Sin líneas activas en este horario'
+            : '$_count líneas circulando ahora';
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AvailableNowPage()),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                color.withValues(alpha: 0.18),
+                color.withValues(alpha: 0.04),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: PhosphorIcon(
+                  PhosphorIcons.clock(),
+                  color: color,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Disponibles ahora',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              PhosphorIcon(
+                PhosphorIcons.arrowRight(),
+                color: color,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

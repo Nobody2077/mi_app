@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -302,9 +303,9 @@ class _AddRoutePageState extends State<AddRoutePage> {
             const _SectionHeader('Informacion basica'),
             DropdownButtonFormField<TransportType>(
               initialValue: _transportType,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Tipo de transporte',
-                prefixIcon: Icon(Icons.commute),
+                prefixIcon: PhosphorIcon(PhosphorIcons.path()),
               ),
               items: TransportType.values
                   .map(
@@ -470,7 +471,7 @@ class _AddRoutePageState extends State<AddRoutePage> {
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: _saveRoute,
-              icon: const Icon(Icons.save),
+              icon: PhosphorIcon(PhosphorIcons.floppyDisk()),
               label: const Text('Guardar ruta'),
             ),
             const SizedBox(height: 16),
@@ -764,7 +765,7 @@ class _RecordingPanelState extends State<_RecordingPanel> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.gps_fixed),
+                    PhosphorIcon(PhosphorIcons.crosshair(PhosphorIconsStyle.fill)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -793,11 +794,11 @@ class _RecordingPanelState extends State<_RecordingPanel> {
                   children: [
                     if (started != null) ...[
                       Chip(
-                        avatar: const Icon(Icons.timer_outlined, size: 16),
+                        avatar: PhosphorIcon(PhosphorIcons.timer(), size: 16),
                         label: Text(_formatElapsed()),
                       ),
                       Chip(
-                        avatar: const Icon(Icons.straighten, size: 16),
+                        avatar: PhosphorIcon(PhosphorIcons.ruler(), size: 16),
                         label: Text(_formatDistance()),
                       ),
                     ],
@@ -820,7 +821,7 @@ class _RecordingPanelState extends State<_RecordingPanel> {
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: widget.isRecording ? null : widget.onStart,
-                        icon: const Icon(Icons.play_arrow),
+                        icon: PhosphorIcon(PhosphorIcons.play(PhosphorIconsStyle.fill)),
                         label: const Text('Iniciar'),
                       ),
                     ),
@@ -828,7 +829,7 @@ class _RecordingPanelState extends State<_RecordingPanel> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: widget.isRecording ? widget.onStop : null,
-                        icon: const Icon(Icons.stop),
+                        icon: PhosphorIcon(PhosphorIcons.stop(PhosphorIconsStyle.fill)),
                         label: const Text('Terminar'),
                       ),
                     ),

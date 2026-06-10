@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   const AppTheme._();
@@ -73,9 +74,15 @@ class AppTheme {
   }
 
   static ThemeData _base(ColorScheme scheme) {
+    final isLight = scheme.brightness == Brightness.light;
+    final baseText = isLight
+        ? Typography.material2021().black
+        : Typography.material2021().white;
+
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      textTheme: GoogleFonts.poppinsTextTheme(baseText),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(48),

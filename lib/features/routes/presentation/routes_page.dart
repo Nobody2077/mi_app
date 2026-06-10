@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../data/route_export_service.dart';
 import '../data/route_repository_provider.dart';
@@ -85,7 +86,7 @@ class _RoutesPageState extends State<RoutesPage> {
                       );
                       _reload();
                     },
-                    icon: const Icon(Icons.add),
+                    icon: PhosphorIcon(PhosphorIcons.plus()),
                     label: const Text('Agregar ruta'),
                   ),
                 );
@@ -141,7 +142,7 @@ class _RoutesPageState extends State<RoutesPage> {
           ),
           FilledButton.icon(
             onPressed: () => Navigator.of(context).pop(true),
-            icon: const Icon(Icons.delete_outline),
+            icon: PhosphorIcon(PhosphorIcons.trash()),
             label: const Text('Borrar'),
           ),
         ],

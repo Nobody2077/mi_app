@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../data/route_export_service.dart';
 import '../data/route_repository_provider.dart';
@@ -93,7 +94,7 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
           ),
           FilledButton.icon(
             onPressed: () => Navigator.of(context).pop(true),
-            icon: const Icon(Icons.delete_outline),
+            icon: PhosphorIcon(PhosphorIcons.trash()),
             label: const Text('Borrar'),
           ),
         ],
@@ -198,7 +199,7 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
                     for (final rule in route.fareRules)
                       ListTile(
                         dense: true,
-                        leading: const Icon(Icons.payments_outlined),
+                        leading: PhosphorIcon(PhosphorIcons.money()),
                         title: Text(rule.label),
                         subtitle: Text(rule.destination),
                         trailing: Text('Bs ${rule.fareBs.toStringAsFixed(1)}'),
@@ -223,7 +224,7 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
                   for (final stop in route.stops)
                     ListTile(
                       dense: true,
-                      leading: const Icon(Icons.location_on_outlined),
+                      leading: PhosphorIcon(PhosphorIcons.mapPin()),
                       title: Text(stop),
                     ),
                 ],
@@ -242,7 +243,7 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.map_outlined),
+                  icon: PhosphorIcon(PhosphorIcons.mapTrifold()),
                   label: const Text('Ver mapa'),
                 ),
               ),
@@ -250,26 +251,26 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
               IconButton.filledTonal(
                 tooltip: _isSaved ? 'Quitar guardado' : 'Guardar ruta',
                 onPressed: _toggleSaved,
-                icon: Icon(_isSaved ? Icons.bookmark : Icons.bookmark_outline),
+                icon: PhosphorIcon(_isSaved ? PhosphorIcons.bookmark(PhosphorIconsStyle.fill) : PhosphorIcons.bookmark()),
               ),
             ],
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _showReportDialog,
-            icon: const Icon(Icons.report_outlined),
+            icon: PhosphorIcon(PhosphorIcons.warning()),
             label: const Text('Reportar cambio o problema'),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _exportRoute,
-            icon: const Icon(Icons.ios_share),
+            icon: PhosphorIcon(PhosphorIcons.shareNetwork()),
             label: const Text('Exportar o compartir ruta'),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _confirmDeleteRoute,
-            icon: const Icon(Icons.delete_outline),
+            icon: PhosphorIcon(PhosphorIcons.trash()),
             label: const Text('Borrar ruta'),
             style: OutlinedButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
@@ -291,7 +292,7 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
                     for (final report in _reports.reversed.take(3))
                       ListTile(
                         dense: true,
-                        leading: const Icon(Icons.info_outline),
+                        leading: PhosphorIcon(PhosphorIcons.info()),
                         title: Text(report.type.label),
                         subtitle: Text(report.comment),
                       ),
@@ -306,9 +307,9 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
 
   IconData _iconFor(TransportType type) {
     return switch (type) {
-      TransportType.minibus => Icons.airport_shuttle,
-      TransportType.trufi => Icons.local_taxi,
-      TransportType.micro => Icons.directions_bus,
+      TransportType.minibus => PhosphorIcons.van(),
+      TransportType.trufi => PhosphorIcons.taxi(),
+      TransportType.micro => PhosphorIcons.bus(),
     };
   }
 

@@ -1,113 +1,207 @@
-# Ruta Fácil Stabilization — Design
+# Design — Ruta Fácil El Alto: Estabilización y Separación de Roles
 
-## Overview
-
-This document covers the technical design for one bugfix and two features in the **Ruta Fácil El Alto** Flutter app.
-
-**Completed — RouteRecordingController Extraction:** All GPS recording logic has been extracted from `_AddRoutePageState` into `lib/features/routes/presentation/route_recording_controller.dart` (`ChangeNotifier`). The controller uses only `Geolocator.getPositionStream` — no `getCurrentPosition` call.
-
-**Bug 1 — Background Recording Suspends (Foreground Service Missing):** On Android 14+, the OS refuses to promote the location listener to a foreground service because `AndroidManifest.xml` is missing the `<service>` declaration for `com.baseflow.geolocator.GeolocatorLocationService`. Fix: add the declaration inside `<application>`.
-
-**Feature 1 — Database Seeding on First Launch:** On a fresh install the `routes` table is empty. `LocalRouteRepository.getRoutes()` must detect the absence of a `seeded_v2` metadata key and insert all 5 mock routes from `MockRouteRepository.routes` (with `saveRoute: false`) before returning results.
-
-**Feature 2 — Collector vs. Passenger Mode (`isCollectorMode`):** Add a boolean flag to `AppSettings` that hides recording-related UI (FAB, "Reportar" card, "Borrar ruta" button) when `false`. A 5-second long-press on the mascot image in the home page header toggles the mode and shows a `SnackBar` confirmation.
+> **Para agentes de código (Claude Code, Codex, etc.):**
+> Este documento describe el estado ACTUAL del proyecto, lo que ya está implementado y NO se debe tocar,
+> y los 3 cambios pendientes que deben ejecutarse. Lee la sección "Estado actual" antes de cualquier modificación.
 
 ---
 
-## Glossary
+## 1. Estado actual del proyecto (ya implementado — NO MODIFICAR)
 
-- **`RouteRecordingController`**: `ChangeNotifier` at `lib/features/routes/presentation/route_recording_controller.dart` — manages GPS recording state and stream lifecycle.
-- **`start()`**: `RouteRecordingController.start()` — requests permissions, starts `getPositionStream`, returns `RouteRecordingStartResult`.
-- **`stop()`**: `RouteRecordingController.stop()` — cancels the stream subscription, sets `endedAt`.
-- **`_addPosition(Position)`**: Private method in the controller that appends a coordinate to `_recordedPoints` after a 10-meter distance filter.
-- **`getPositionStream`**: `Geolocator.getPositionStream` — the only source of coordinates during recording.
-- **`GeolocatorLocationService`**: Android foreground service class from the `geolocator` plugin that keeps location updates alive in the background.
-- **`seeded_v2`**: Metadata key in the SQLite `metadata` table that marks whether the 5 mock routes have been inserted.
-- **`isCollectorMode`**: Boolean flag in `AppSettings` (default `true`) that controls visibility of recording-related UI.
-- **`AppSettingsScope`**: `InheritedNotifier<AppSettings>` that exposes `AppSettings` to the widget tree.
+### 1.1 Arquitectura general
 
----
-
-## Bug 1: Background Recording Suspends
-
-### Bug Condition
-
-The bug manifests when the app is moved to the background on Android 14+ during an active recording session. The `GeolocatorLocationService` foreground service cannot be started because it is not declared in `AndroidManifest.xml`.
-
-**Formal Specification:**
 ```
-FUNCTION isBugCondition(session)
-  INPUT: session — a RouteRecordingController recording session
-  OUTPUT: boolean
-
-  RETURN session.platform = Android14Plus
-      AND session.wasBackgrounded = true
-      AND session.recordedPoints.count STOPS GROWING after backgrounding
-END FUNCTION
+lib/
+├── main.dart                          → Carga AppSettings y arranca RutaFacilApp
+├── app/
+│   ├── ruta_facil_app.dart            → MaterialApp + AppSettingsScope (InheritedNotifier)
+│   ├── app_settings.dart              → ChangeNotifier con tema, color, idioma, isCollectorMode
+│   ├── app_theme.dart                 → ThemeData light/dark con colores por tipo de transporte
+│   └── app_assets.dart                → Rutas de assets (logo, mascot, icon)
+├── core/
+│   ├── constants/app_constants.dart   → defaultAverageSpeedKmh = 18.0
+│   └── utils/geo_utils.dart           → distanceInMeters, polylineDistanceInMeters
+└── features/
+    ├── home/presentation/home_page.dart         → Pantalla principal, bifurca por isCollectorMode
+    ├── settings/presentation/settings_page.dart → Toggle isCollectorMode + tema + color + idioma
+    ├── routes/
+    │   ├── data/
+    │   │   ├── local_route_repository.dart      → SQLite, seeding desde assets JSON
+    │   │   ├── mock_route_repository.dart        → 5 rutas demo en memoria
+    │   │   ├── route_repository_provider.dart    → Retorna LocalRouteRepository.instance
+    │   │   ├── route_export_service.dart         → Exporta ruta a JSON y comparte
+    │   │   └── route_json_codec.dart             → Encode/decode TransitRoute ↔ JSON
+    │   ├── domain/
+    │   │   ├── models/transit_route.dart         → TransitRoute, FareRule, RouteScheduleRule, TransportType
+    │   │   ├── models/bus_position.dart          → BusPosition
+    │   │   ├── models/route_report.dart          → RouteReport, ReportType
+    │   │   ├── repositories/route_repository.dart → Interfaz RouteRepository
+    │   │   └── services/                         → EtaService, RouteAvailabilityService, DeviationDetector, RoadRouteService
+    │   └── presentation/
+    │       ├── route_recording_controller.dart   → ChangeNotifier GPS (BUG ACTIVO aquí)
+    │       ├── add_route_page.dart               → Formulario completo de grabación
+    │       ├── map_page.dart                     → Mapa con filtros, polyline, buses simulados
+    │       ├── route_detail_page.dart            → Detalle + acciones (BUG UI aquí)
+    │       ├── routes_page.dart                  → Lista colector (getSavedRoutes)
+    │       ├── favorites_page.dart               → Lista pasajero (getSavedRoutes)
+    │       ├── search_destination_page.dart      → Búsqueda con autocomplete
+    │       ├── available_now_page.dart           → Líneas activas según scheduleRules
+    │       └── widgets/route_card.dart           → Card reutilizable de ruta
+    └── share_location/presentation/             → Vacío (no implementado aún)
 ```
 
-### Examples
+### 1.2 AppSettings — estado real
 
-- **Buggy**: User starts recording, backgrounds the app on a Pixel 8 (Android 14). After 2 minutes, "Puntos" counter is still 1. Average speed is 0.0 km/h.
-- **Buggy**: User returns to foreground after 5 minutes. A straight-line gap appears in the polyline covering the missed distance.
-- **Fixed**: Service declaration added. Foreground service starts when recording begins. Points accumulate continuously regardless of app visibility.
-- **Not affected**: iOS uses `AppleSettings` with `showBackgroundLocationIndicator: true` — unaffected by this change.
+```dart
+// lib/app/app_settings.dart
+class AppSettings extends ChangeNotifier {
+  // CLAVES EN SharedPreferences:
+  static const _themeModeKey    = 'theme_mode';      // 'light' | 'dark'
+  static const _accentColorKey  = 'accent_color';    // int 0-2
+  static const _languageKey     = 'app_language';    // 'spanish' | 'aymara' | 'english'
+  static const _collectorModeKey = 'collector_mode'; // bool — DEFAULT FALSE
 
-### Preservation Requirements
+  // GETTERS DISPONIBLES:
+  bool get isCollectorMode => _isCollectorMode;  // ← YA EXISTE
+  ThemeMode get themeMode  => _themeMode;
+  Color get accentColor    => accentColors[_accentColorIndex];
+  AppLanguage get language => _language;
 
-- Foreground recording on Android continues to deliver updates at the configured interval (5 s / 12 m).
-- iOS behavior is entirely unaffected (`AppleSettings` path is unchanged).
-- `stop()` cancels the subscription and dismisses the foreground notification as before.
-- The fix is backward-compatible with Android versions below 14.
+  // MÉTODOS DISPONIBLES:
+  Future<void> setCollectorMode(bool value);  // ← YA EXISTE
+  Future<void> setThemeMode(ThemeMode mode);
+  Future<void> setAccentColor(int index);
+  Future<void> setLanguage(AppLanguage language);
+}
+```
 
-### Root Cause
+⚠️ **Default de `isCollectorMode` es `false`** (modo pasajero). Cambiar a `true` desde Ajustes activa el modo colector.
 
-Android 14 (API 34) tightened enforcement of foreground service declarations. The `geolocator` plugin's `ForegroundNotificationConfig` instructs the plugin to use a foreground service, but Android will not start an undeclared service. The `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_LOCATION` permissions are already present in the manifest; only the `<service>` element is missing.
+### 1.3 UI condicional ya implementada en HomePage
+
+| Widget | Condición | Estado |
+|---|---|---|
+| Saludo "Buenos días, colector" | `isCollectorMode == true` | ✅ |
+| Subtítulo "Registra rutas reales..." | `isCollectorMode == true` | ✅ |
+| Saludo "Buenos días" genérico | `isCollectorMode == false` | ✅ |
+| Subtítulo "¿A dónde quieres ir hoy?" | `isCollectorMode == false` | ✅ |
+| Card principal "Grabar ruta" (`_HeroActionCard`) | `isCollectorMode == true` | ✅ |
+| Card grilla "Grabadas" → `RoutesPage` | `isCollectorMode == true` | ✅ |
+| Card grilla "Rutas favoritas" → `FavoritesPage` | `isCollectorMode == false` | ✅ |
+| Card "Disponibles ahora" (`_AvailableNowCard`) | `isCollectorMode == false` | ✅ |
+| Barra de búsqueda → `SearchDestinationPage` | Siempre | ✅ |
+| Card grilla "Mapa" → `MapPage` | Siempre | ✅ |
+| Toggle en Ajustes | `SettingsPage` | ✅ |
+
+### 1.4 Seeding de base de datos — estado real
+
+El seeding **NO usa `MockRouteRepository`**. Usa assets JSON reales:
+
+```dart
+// lib/features/routes/data/local_route_repository.dart
+static const _bundledRouteSeeds = [
+  _BundledRouteSeed(
+    routeId: 'manual-1779730822843',
+    metadataKey: 'seeded_route_manual_1779730822843',
+    assetPath: 'assets/routes/ruta_facil_no_tiene_manual-1779730822843.json',
+    saveRoute: true,
+  ),
+  _BundledRouteSeed(
+    routeId: 'manual-1779759085763',
+    metadataKey: 'seeded_route_manual_1779759085763',
+    assetPath: 'assets/routes/ruta_facil_204_manual-1779759085763.json',
+    saveRoute: true,
+  ),
+];
+```
+
+El método `_seedBundledRoutesIfNeeded(db)` ya está implementado y es llamado en `getRoutes()` y `getSavedRoutes()`. **No modificar este sistema.**
+
+### 1.5 RouteRecordingController — estado real (con bug activo)
+
+```dart
+// lib/features/routes/presentation/route_recording_controller.dart
+Future<RouteRecordingStartResult> start() async {
+  // ... permisos OK ...
+
+  _isRecording = true;
+  _startedAt = DateTime.now();
+  _recordedPoints.clear();
+  notifyListeners();
+
+  // ❌ BUG AQUÍ: getCurrentPosition devuelve caché obsoleta del SO
+  try {
+    final initial = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    );
+    _addPosition(initial);  // ← puede insertar (18.73, -70.16) República Dominicana
+  } catch (_) {}
+
+  // ✅ Correcto: el stream sí entrega posición real
+  _positionSubscription = Geolocator.getPositionStream(
+    locationSettings: _buildLocationSettings(),
+  ).listen(_addPosition, onError: (_) => unawaited(stop()));
+
+  return RouteRecordingStartResult.started;
+}
+```
 
 ---
 
-## Expected Behavior
+## 2. Cambios pendientes (los únicos 3 que deben implementarse)
 
-### Bug 1 — Preservation Requirements
+### CAMBIO 1 — Bug: Coordenada estale de República Dominicana
 
-**Unchanged Behaviors:**
-- `start()` returns `RouteRecordingStartResult.permissionDenied` when location permission is denied.
-- `start()` returns `RouteRecordingStartResult.locationServiceDisabled` when the location service is off.
-- `start()` returns `RouteRecordingStartResult.alreadyRecording` when called during an active session.
-- The live stream's `_addPosition` calls continue to apply the 10-meter distance filter.
-- `stop()` cancels the stream subscription and sets `endedAt`.
-- Speed ≥ 12 km/h triggers `_needsTransportConfirmation = true` as before.
+**Archivo:** `lib/features/routes/presentation/route_recording_controller.dart`
+
+**Problema:** El bloque `try/catch` con `getCurrentPosition` inserta la última posición cacheada del SO como primer punto. En dispositivos con caché obsoleta, esto produce una polilínea trans-oceánica.
+
+**Fix — eliminar exactamente estas líneas:**
+
+```diff
+     _isRecording = true;
+     _startedAt = DateTime.now();
+     _endedAt = null;
+     _recordedPoints.clear();
+     _currentSpeedKmh = 0;
+     notifyListeners();
+
+-    // Capture starting position immediately, before any movement triggers the stream.
+-    try {
+-      final initial = await Geolocator.getCurrentPosition(
+-        locationSettings:
+-            const LocationSettings(accuracy: LocationAccuracy.high),
+-      );
+-      _addPosition(initial);
+-    } catch (_) {}
+-
+     _positionSubscription = Geolocator.getPositionStream(
+```
+
+**Resultado esperado:** `_recordedPoints` permanece vacío hasta que el stream en vivo entregue la primera posición real. El primer punto grabado tendrá latitud negativa (El Alto ≈ −16.5°S).
+
+**Propiedad de corrección:**
+```
+PARA TODA sesión de grabación iniciada en El Alto:
+  DESPUÉS de fix: recordedPoints.isEmpty hasta primer evento del stream
+  recordedPoints.first.latitude < 0  (Hemisferio Sur)
+```
+
+**NO TOCAR:** El resto del método `start()`, `stop()`, `_addPosition()`, `_buildLocationSettings()`, ni ningún otro método del controller.
 
 ---
 
-## Correctness Properties
+### CAMBIO 2 — Bug: Grabación en segundo plano se suspende en Android 14+
 
-Property 1: Bug Condition — Continuous Points Through Background (Android 14+)
+**Archivo:** `android/app/src/main/AndroidManifest.xml`
 
-_For any_ recording session on Android 14+ where the app is backgrounded, the fixed implementation (with the `<service>` declaration present) SHALL continue accumulating points in `_recordedPoints` at the configured interval, such that `recordedPoints.count` is strictly greater after a background period than it was at the moment of backgrounding.
+**Problema:** Los permisos `FOREGROUND_SERVICE` y `FOREGROUND_SERVICE_LOCATION` ya existen, pero falta la declaración `<service>` que Android 14+ requiere para iniciar el servicio en primer plano del plugin Geolocator.
 
-**Validates: Requirements Bug 1 — 2.1, 2.2, 2.3**
+**Fix — insertar dentro de `<application>`, justo después del cierre `</activity>` y antes del comentario `<!-- Don't delete the meta-data below -->`:**
 
-Property 2: Preservation — Background Fix Does Not Affect iOS or Foreground Android
-
-_For any_ recording session on iOS or on Android while the app remains in the foreground, the fixed implementation SHALL produce the same position update behavior as the original implementation, with no change to update frequency, distance filtering, or notification behavior.
-
-**Validates: Requirements Bug 1 — 3.1, 3.2, 3.3, 3.4**
-
----
-
-## Fix Implementation
-
-### Fix 1: Add foreground service declaration to AndroidManifest
-
-**File:** `android/app/src/main/AndroidManifest.xml`
-
-**Change:** Add a `<service>` element inside `<application>`, after the closing `</activity>` tag and before the `<!-- Don't delete the meta-data below -->` comment.
-
-**Exact diff:**
 ```diff
          </activity>
-+        <!-- Geolocator foreground service — required for background location on Android 14+ -->
++        <!-- Geolocator foreground service — requerido para tracking en segundo plano en Android 14+ -->
 +        <service
 +            android:name="com.baseflow.geolocator.GeolocatorLocationService"
 +            android:enabled="true"
@@ -116,190 +210,231 @@ _For any_ recording session on iOS or on Android while the app remains in the fo
          <!-- Don't delete the meta-data below.
 ```
 
-No other changes to this file.
+**Resultado esperado:** En Android 14+, al enviar la app al fondo durante una grabación activa, el contador "Puntos" continúa incrementándose y la velocidad promedio se actualiza.
+
+**NO TOCAR:** Los permisos existentes, la configuración de la `<activity>`, los `<meta-data>`, ni el bloque `<queries>`.
 
 ---
 
-### Fix 2: Database seeding on first launch
+### CAMBIO 3 — UI: Ocultar "Borrar ruta" para pasajeros
 
-**File:** `lib/features/routes/data/local_route_repository.dart`
+**Archivo:** `lib/features/routes/presentation/route_detail_page.dart`
 
-**File:** `lib/features/routes/data/mock_route_repository.dart`
+**Problema:** El botón "Borrar ruta" actualmente se muestra a todos los usuarios. Un pasajero no debe poder borrar rutas del catálogo recolectado.
 
-#### 2a. Expose mock routes as a public static getter
+**Contexto del archivo:**
+- `RouteDetailPage` es un `StatefulWidget` con `_RouteDetailPageState`
+- No tiene acceso actual a `AppSettings` — hay que agregarlo
+- `AppSettingsScope.of(context)` está disponible (se inyecta desde `RutaFacilApp`)
 
-**In `mock_route_repository.dart`**, add after the `_routes` declaration:
+**Fix — en el método `build()` de `_RouteDetailPageState`:**
 
-```dart
-static List<TransitRoute> get routes => List.unmodifiable(_routes);
+```diff
+   @override
+   Widget build(BuildContext context) {
+     final route = widget.route;
+     final eta = _etaService.estimateArrival(route);
+     final activeInfo = _availabilityService.evaluate(route, DateTime.now());
++    final settings = AppSettingsScope.of(context);
+
+     return Scaffold(
+       appBar: AppBar(title: const Text('Detalle de ruta')),
 ```
 
-#### 2b. Add `_seedIfNeeded` helper and call it from `getRoutes()`
-
-**In `local_route_repository.dart`**, add a private method:
-
-```dart
-Future<void> _seedIfNeeded(Database db) async {
-  final existing = await db.query(
-    'metadata',
-    where: 'key = ?',
-    whereArgs: ['seeded_v2'],
-    limit: 1,
-  );
-  if (existing.isNotEmpty) return;
-
-  await db.transaction((txn) async {
-    for (final route in MockRouteRepository.routes) {
-      await _insertRoute(txn, route, saveRoute: false);
-    }
-    await txn.insert('metadata', {
-      'key': 'seeded_v2',
-      'value': '1',
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
-  });
-}
+```diff
+           const SizedBox(height: 12),
+-          OutlinedButton.icon(
+-            onPressed: _confirmDeleteRoute,
+-            icon: PhosphorIcon(PhosphorIcons.trash()),
+-            label: const Text('Borrar ruta'),
+-            style: OutlinedButton.styleFrom(
+-              foregroundColor: Theme.of(context).colorScheme.error,
+-            ),
+-          ),
++          if (settings.isCollectorMode)
++            OutlinedButton.icon(
++              onPressed: _confirmDeleteRoute,
++              icon: PhosphorIcon(PhosphorIcons.trash()),
++              label: const Text('Borrar ruta'),
++              style: OutlinedButton.styleFrom(
++                foregroundColor: Theme.of(context).colorScheme.error,
++              ),
++            ),
+           const SizedBox(height: 12),
 ```
 
-**Modify `getRoutes()`:**
-
+**Import a agregar** al inicio del archivo (si no existe):
 ```dart
-@override
-Future<List<TransitRoute>> getRoutes() async {
-  final db = await _db;
-  await _seedIfNeeded(db);                          // <-- added
-  final routeRows = await db.query('routes', orderBy: 'created_at DESC');
-  final routes = <TransitRoute>[];
-  for (final row in routeRows) {
-    routes.add(await _routeFromRow(db, row));
-  }
-  return routes;
-}
+import '../../../app/ruta_facil_app.dart';
 ```
 
-**Add import** at the top:
-```dart
-import 'mock_route_repository.dart';
+**Resultado esperado:**
+- `isCollectorMode == false` (pasajero): "Borrar ruta" no aparece. Sí aparecen: "Ver mapa", bookmark, "Reportar", "Exportar".
+- `isCollectorMode == true` (colector): Todo aparece como actualmente.
+
+**NO TOCAR:** `_confirmDeleteRoute()`, `_toggleSaved()`, `_showReportDialog()`, `_exportRoute()`, ni ninguna otra acción o widget del detalle.
+
+---
+
+## 3. Wireframes UI — referencia visual
+
+### 3.1 HomePage — modo pasajero (`isCollectorMode = false`)
+
+```
+┌─────────────────────────────────────────┐
+│ AppBar: ⚙  Ruta Fácil                   │  ← ⚙ toca → SettingsPage
+├─────────────────────────────────────────┤
+│ Buenos días                             │  ← saludo genérico
+│ ¿A dónde quieres ir hoy?               │
+│                                         │
+│ [🔍 Ej. 204, Rio Seco, UPEA...       >]│  ← toca → SearchDestinationPage
+│                                         │
+│ Mas opciones                            │
+│ ┌──────────────┐  ┌──────────────┐     │
+│ │ ⭐ Rutas      │  │ 🗺️ Mapa       │     │  ← FavoritesPage / MapPage
+│ │ favoritas    │  │              │     │
+│ │ Tus líneas   │  │ Ver recorri- │     │
+│ │ guardadas    │  │ dos y buses  │     │
+│ └──────────────┘  └──────────────┘     │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ 🕐  Disponibles ahora               │ │  ← _AvailableNowCard → AvailableNowPage
+│ │     N líneas circulando ahora    >  │ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+
+AUSENTE en modo pasajero:
+  ✗ Card "Grabar ruta" (HeroActionCard roja)
+  ✗ Card grilla "Grabadas"
+```
+
+### 3.2 HomePage — modo colector (`isCollectorMode = true`)
+
+```
+┌─────────────────────────────────────────┐
+│ AppBar: ⚙  Ruta Fácil                   │
+├─────────────────────────────────────────┤
+│ Buenos días, colector                   │  ← saludo personalizado
+│ Registra rutas reales de El Alto.       │
+│                                         │
+│ [🔍 Ej. 204, Rio Seco, UPEA...       >]│
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ 🔴  Grabar ruta                   > │ │  ← HeroActionCard → AddRoutePage
+│ │     GPS, dia, hora, pasaje y ruta   │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ Mas opciones                            │
+│ ┌──────────────┐  ┌──────────────┐     │
+│ │ 🗺️ Mapa       │  │ 🔖 Grabadas   │     │  ← MapPage / RoutesPage
+│ │ Ver recorri- │  │ Recorridos   │     │
+│ │ dos y buses  │  │ en campo     │     │
+│ └──────────────┘  └──────────────┘     │
+└─────────────────────────────────────────┘
+
+AUSENTE en modo colector:
+  ✗ Card "Rutas favoritas"
+  ✗ Card "Disponibles ahora"
+```
+
+### 3.3 RouteDetailPage — acciones por modo
+
+```
+MODO PASAJERO (isCollectorMode = false):
+┌─────────────────────────────────────────┐
+│ [Ver mapa]          [🔖 bookmark toggle] │  ← FilledButton + IconButton
+│ [Reportar cambio o problema           ] │  ← OutlinedButton
+│ [Exportar o compartir ruta            ] │  ← OutlinedButton
+│                                         │
+│ ✗ "Borrar ruta" NO aparece             │  ← OCULTO
+└─────────────────────────────────────────┘
+
+MODO COLECTOR (isCollectorMode = true):
+┌─────────────────────────────────────────┐
+│ [Ver mapa]          [🔖 bookmark toggle] │
+│ [Reportar cambio o problema           ] │
+│ [Exportar o compartir ruta            ] │
+│ [🗑️ Borrar ruta                        ] │  ← OutlinedButton rojo — VISIBLE
+└─────────────────────────────────────────┘
+```
+
+### 3.4 SettingsPage — toggle de modo
+
+```
+┌─────────────────────────────────────────┐
+│ AppBar: Ajustes                         │
+├─────────────────────────────────────────┤
+│ APARIENCIA                              │
+│ Tema          Naranja  [Naranja][Oscuro]│
+│ Color de acento   Ámbar  ● ● ●         │
+│                                         │
+│ IDIOMA                                  │
+│ Idioma        Español  [dropdown]       │
+│                                         │
+│ AVANZADO                                │
+│ 🔴 Modo colector              [toggle] │  ← settings.setCollectorMode(value)
+│    Activa opciones para grabar          │
+│    rutas en campo                       │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-### Fix 3: Collector vs. Passenger mode (`isCollectorMode`)
+## 4. Flujo de estado — AppSettings como fuente de verdad
 
-#### 3a. `AppSettings` changes
-
-**File:** `lib/app/app_settings.dart`
-
-```dart
-class AppSettings extends ChangeNotifier {
-  AppSettings._(this._preferences) {
-    final storedMode = _preferences.getString(_themeModeKey);
-    _themeMode = storedMode == 'dark' ? ThemeMode.dark : ThemeMode.light;
-    _isCollectorMode = _preferences.getBool(_collectorModeKey) ?? true;
-  }
-
-  static const String _themeModeKey = 'theme_mode';
-  static const String _collectorModeKey = 'collector_mode';
-
-  final SharedPreferences _preferences;
-  late ThemeMode _themeMode;
-  late bool _isCollectorMode;
-
-  ThemeMode get themeMode => _themeMode;
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
-  bool get isCollectorMode => _isCollectorMode;
-
-  Future<void> setCollectorMode(bool value) async {
-    _isCollectorMode = value;
-    await _preferences.setBool(_collectorModeKey, value);
-    notifyListeners();
-  }
-}
 ```
-
-#### 3b. Home page changes
-
-**File:** `lib/features/home/presentation/home_page.dart`
-
-Leer `AppSettingsScope.of(context).isCollectorMode` y condicionar FAB y card "Reportar". Convertir `_HeroHeader` a `StatefulWidget` con `Timer? _longPressTimer`:
-
-```dart
-class _HeroHeaderState extends State<_HeroHeader> {
-  Timer? _longPressTimer;
-
-  void _onMascotLongPressStart(LongPressStartDetails _) {
-    _longPressTimer = Timer(const Duration(seconds: 5), () {
-      final settings = AppSettingsScope.of(context);
-      final newValue = !settings.isCollectorMode;
-      settings.setCollectorMode(newValue);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            newValue ? 'Modo Colector activado' : 'Modo Pasajero activado',
-          ),
-        ),
-      );
-    });
-  }
-
-  void _onMascotLongPressEnd(LongPressEndDetails _) {
-    _longPressTimer?.cancel();
-    _longPressTimer = null;
-  }
-
-  @override
-  void dispose() {
-    _longPressTimer?.cancel();
-    super.dispose();
-  }
-}
-```
-
-#### 3c. Route detail page changes
-
-**File:** `lib/features/routes/presentation/route_detail_page.dart`
-
-```dart
-final settings = AppSettingsScope.of(context);
-
-if (settings.isCollectorMode)
-  OutlinedButton.icon(
-    onPressed: _confirmDeleteRoute,
-    icon: const Icon(Icons.delete_outline),
-    label: const Text('Borrar ruta'),
-    style: OutlinedButton.styleFrom(
-      foregroundColor: Theme.of(context).colorScheme.error,
-    ),
-  ),
+main.dart
+  └─ AppSettings.load()         → carga SharedPreferences
+       └─ RutaFacilApp          → AppSettingsScope (InheritedNotifier)
+            └─ AnimatedBuilder  → se reconstruye en cada notifyListeners()
+                 └─ HomePage    → lee AppSettingsScope.of(context).isCollectorMode
+                                  → bifurca UI según valor
+                 └─ SettingsPage → llama settings.setCollectorMode(true/false)
+                                   → notifyListeners() → AnimatedBuilder rebuild
+                 └─ RouteDetailPage → [PENDIENTE] leer isCollectorMode
 ```
 
 ---
 
-## Testing Strategy
+## 5. Tabla de widgets condicionales — resumen completo
 
-### Bug 1 — Foreground Service
+| Widget | Archivo | Condición | Estado |
+|---|---|---|---|
+| Saludo + subtítulo colector | `home_page.dart` → `_HeroHeader` | `isCollector == true` | ✅ Implementado |
+| Saludo + subtítulo pasajero | `home_page.dart` → `_HeroHeader` | `isCollector == false` | ✅ Implementado |
+| `_HeroActionCard` "Grabar ruta" | `home_page.dart` | `isCollectorMode == true` | ✅ Implementado |
+| Card "Grabadas" (grilla) | `home_page.dart` | `isCollectorMode == true` | ✅ Implementado |
+| Card "Rutas favoritas" (grilla) | `home_page.dart` | `isCollectorMode == false` | ✅ Implementado |
+| `_AvailableNowCard` | `home_page.dart` | `isCollectorMode == false` | ✅ Implementado |
+| Toggle "Modo colector" | `settings_page.dart` | Siempre visible | ✅ Implementado |
+| Botón "Borrar ruta" | `route_detail_page.dart` | `isCollectorMode == true` | ❌ **PENDIENTE** |
 
-**Test Cases:**
-1. Parse `AndroidManifest.xml` (unfixed). Assert `<service android:name="com.baseflow.geolocator.GeolocatorLocationService">` is absent. (Confirms bug condition.)
-2. Parse fixed `AndroidManifest.xml`. Assert service element is present with `android:foregroundServiceType="location"` and `android:exported="false"`. (Fix checking.)
+---
 
-### Feature 1 — Seeding
+## 6. Correctness Properties
 
-**Test Cases:**
-1. **Idempotency**: Call `getRoutes()` twice on the same DB. Assert route count does not double.
-2. **User route preservation**: `addRoute(userRoute)` after seeding → `getRoutes()` returns 6 routes.
-3. **Saved routes**: After seeding, `getSavedRoutes()` returns zero seeded routes.
-4. **Delete seeded route**: `deleteRoute('ceja-villa-adela')` → removed. Other 4 remain.
-5. **Schema upgrade path**: Simulate v1→v2 upgrade → `seeded_v1` cleared → `getRoutes()` runs `seeded_v2` seeding → 5 routes returned.
+### P1 — Fix Bug GPS (Cambio 1)
+```
+PARA TODA sesión de grabación iniciada en El Alto (lat ≈ -16.5):
+  recordedPoints.isEmpty  inmediatamente después de start() retornar
+  Y recordedPoints.first.latitude < 0  después del primer evento del stream
+```
 
-### Feature 2 — Mode
+### P2 — Fix Manifest Android (Cambio 2)
+```
+AndroidManifest.xml CONTIENE:
+  <service android:name="com.baseflow.geolocator.GeolocatorLocationService"
+           android:foregroundServiceType="location"
+           android:exported="false" />
+```
 
-**Test Cases:**
-1. Load `AppSettings` with empty `SharedPreferences`. Assert `isCollectorMode = true`.
-2. Call `setCollectorMode(false)`. Reload `AppSettings`. Assert `isCollectorMode = false`.
-3. `HomePage` con `isCollectorMode = true` → "Grabar ruta" y "Reportar" presentes.
-4. `HomePage` con `isCollectorMode = false` → "Grabar ruta" y "Reportar" ausentes.
-5. `RouteDetailPage` con `isCollectorMode = true` → "Borrar ruta" presente.
-6. `RouteDetailPage` con `isCollectorMode = false` → "Borrar ruta" ausente.
-7. Long-press 5 s en mascota con `isCollectorMode = true` → SnackBar "Modo Pasajero activado".
-8. Long-press 5 s en mascota con `isCollectorMode = false` → SnackBar "Modo Colector activado".
-9. Long-press 2 s (suelta antes) → modo no cambia.
+### P3 — UI Borrar Ruta (Cambio 3)
+```
+PARA TODO widget tree donde isCollectorMode == false:
+  find('Borrar ruta').isEmpty == true
+
+PARA TODO widget tree donde isCollectorMode == true:
+  find('Borrar ruta').isNotEmpty == true
+  find('Reportar cambio o problema').isNotEmpty == true
+  find('Exportar o compartir ruta').isNotEmpty == true
+```

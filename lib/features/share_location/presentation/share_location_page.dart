@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../routes/data/route_repository_provider.dart';
 import '../../routes/presentation/add_route_page.dart';
@@ -113,7 +114,7 @@ class _ShareLocationPageState extends State<ShareLocationPage> {
                         );
                         await _loadRoutes();
                       },
-                      icon: const Icon(Icons.fiber_manual_record),
+                      icon: PhosphorIcon(PhosphorIcons.record(PhosphorIconsStyle.fill)),
                       label: const Text('Grabar primera ruta'),
                     ),
                   ],
@@ -124,9 +125,9 @@ class _ShareLocationPageState extends State<ShareLocationPage> {
           ],
           DropdownButtonFormField<String>(
             initialValue: _selectedRoute?.id,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Estoy en esta ruta',
-              prefixIcon: Icon(Icons.alt_route),
+              prefixIcon: PhosphorIcon(PhosphorIcons.path()),
             ),
             hint: const Text('Sin rutas grabadas'),
             items: _routes
@@ -155,7 +156,7 @@ class _ShareLocationPageState extends State<ShareLocationPage> {
                   ? 'Simulando envio de posicion del pasajero.'
                   : 'Activa solo si estas dentro del transporte.',
             ),
-            secondary: const Icon(Icons.my_location),
+            secondary: PhosphorIcon(PhosphorIcons.crosshair(PhosphorIconsStyle.fill)),
             onChanged: (value) {
               setState(() => _isSharing = value);
             },
@@ -171,9 +172,9 @@ class _ShareLocationPageState extends State<ShareLocationPage> {
           const SizedBox(height: 12),
           DropdownButtonFormField<ReportType>(
             initialValue: _reportType,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Tipo de dato colaborativo',
-              prefixIcon: Icon(Icons.report_outlined),
+              prefixIcon: PhosphorIcon(PhosphorIcons.warning()),
             ),
             items: ReportType.values
                 .map(
@@ -197,7 +198,7 @@ class _ShareLocationPageState extends State<ShareLocationPage> {
           const SizedBox(height: 20),
           FilledButton.icon(
             onPressed: _selectedRoute == null ? null : _sendReport,
-            icon: const Icon(Icons.send),
+            icon: PhosphorIcon(PhosphorIcons.paperPlaneTilt(PhosphorIconsStyle.fill)),
             label: const Text('Enviar dato'),
           ),
           const SizedBox(height: 16),
