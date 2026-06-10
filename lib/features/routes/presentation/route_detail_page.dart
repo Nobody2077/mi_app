@@ -10,6 +10,7 @@ import '../domain/repositories/route_repository.dart';
 import '../domain/services/eta_service.dart';
 import '../domain/services/route_availability_service.dart';
 import 'map_page.dart';
+import 'passenger_map_page.dart';
 
 class RouteDetailPage extends StatefulWidget {
   const RouteDetailPage({required this.route, super.key});
@@ -241,7 +242,9 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => MapPage(initialRouteId: route.id),
+                        builder: (_) => settings.isCollectorMode
+                            ? MapPage(initialRouteId: route.id)
+                            : PassengerMapPage(initialRouteId: route.id),
                       ),
                     );
                   },

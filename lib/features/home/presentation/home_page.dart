@@ -7,6 +7,7 @@ import '../../../app/ruta_facil_app.dart';
 import '../../routes/presentation/add_route_page.dart';
 import '../../routes/presentation/favorites_page.dart';
 import '../../routes/presentation/map_page.dart';
+import '../../routes/presentation/passenger_map_page.dart';
 import '../../routes/presentation/routes_page.dart';
 import '../../routes/presentation/search_destination_page.dart';
 import '../../settings/presentation/settings_page.dart';
@@ -49,7 +50,11 @@ class HomePage extends StatelessWidget {
         icon: PhosphorIcons.mapTrifold(),
         color: AppTheme.trufi,
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const MapPage()),
+          MaterialPageRoute(
+            builder: (_) => settings.isCollectorMode
+                ? const MapPage()
+                : const PassengerMapPage(),
+          ),
         ),
       ),
       if (settings.isCollectorMode)
