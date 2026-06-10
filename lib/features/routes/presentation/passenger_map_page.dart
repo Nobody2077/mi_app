@@ -164,12 +164,18 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
         _userLocation = location;
         _locationStatus = _LocationStatus.granted;
       });
-      _mapController.move(location, 16);
       _updateNearbyBuses();
     } catch (_) {
       if (!mounted) return;
       setState(() => _locationStatus = _LocationStatus.denied);
     }
+  }
+
+  Future<void> _centerOnUserLocation() async {
+    await _resolveUserLocation();
+    final location = _userLocation;
+    if (!mounted || location == null) return;
+    _mapController.move(location, 16);
   }
 
   @override
@@ -192,8 +198,8 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _userLocation ?? _elAltoCenter,
-              initialZoom: _userLocation != null ? 16 : 13,
+              initialCenter: _elAltoCenter,
+              initialZoom: 13,
             ),
             children: [
               TileLayer(
@@ -355,8 +361,8 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
       ),
       floatingActionButton: selectedRoute == null
           ? FloatingActionButton(
-              onPressed: _resolveUserLocation,
-              tooltip: 'Mi ubicacion',
+              onPressed: _centerOnUserLocation,
+              tooltip: 'Centrar en mi ubicacion',
               child: PhosphorIcon(PhosphorIcons.gpsFix()),
             )
           : null,
