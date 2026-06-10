@@ -71,21 +71,35 @@ class HomePage extends StatelessWidget {
         ),
     ];
 
-    final appBarFg = Theme.of(context).appBarTheme.foregroundColor ?? Colors.white;
+    final theme = Theme.of(context);
+    final appBarFg = theme.appBarTheme.foregroundColor ?? Colors.white;
+    // Tono claro del acento activo: legible tanto sobre el AppBar de color
+    // del tema claro como sobre el azul marino del tema oscuro.
+    final facilColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.primary
+        : theme.colorScheme.inversePrimary;
 
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 80,
         automaticallyImplyLeading: false,
         titleSpacing: 20,
-        title: Text(
-          'Ruta Fácil',
-          style: GoogleFonts.poppins(
-            fontSize: 30,
-            fontWeight: FontWeight.w900,
-            color: appBarFg,
-            height: 1.0,
-            letterSpacing: -0.5,
+        title: Text.rich(
+          TextSpan(
+            style: GoogleFonts.poppins(
+              fontSize: 30,
+              fontWeight: FontWeight.w900,
+              color: appBarFg,
+              height: 1.0,
+              letterSpacing: -0.5,
+            ),
+            children: [
+              const TextSpan(text: 'Ruta '),
+              TextSpan(
+                text: 'Fácil',
+                style: TextStyle(color: facilColor),
+              ),
+            ],
           ),
         ),
         actions: [
