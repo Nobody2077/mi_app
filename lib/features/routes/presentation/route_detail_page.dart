@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../app/ruta_facil_app.dart';
 import '../data/route_export_service.dart';
 import '../data/route_repository_provider.dart';
 import '../domain/models/route_report.dart';
@@ -112,6 +113,7 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
     final route = widget.route;
     final eta = _etaService.estimateArrival(route);
     final activeInfo = _availabilityService.evaluate(route, DateTime.now());
+    final settings = AppSettingsScope.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detalle de ruta')),
@@ -261,21 +263,23 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
             icon: PhosphorIcon(PhosphorIcons.warning()),
             label: const Text('Reportar cambio o problema'),
           ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _exportRoute,
-            icon: PhosphorIcon(PhosphorIcons.shareNetwork()),
-            label: const Text('Exportar o compartir ruta'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _confirmDeleteRoute,
-            icon: PhosphorIcon(PhosphorIcons.trash()),
-            label: const Text('Borrar ruta'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
+          if (settings.isCollectorMode) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _exportRoute,
+              icon: PhosphorIcon(PhosphorIcons.shareNetwork()),
+              label: const Text('Exportar o compartir ruta'),
             ),
-          ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _confirmDeleteRoute,
+              icon: PhosphorIcon(PhosphorIcons.trash()),
+              label: const Text('Borrar ruta'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           if (_reports.isNotEmpty)
             Card(

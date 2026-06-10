@@ -3,7 +3,6 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../../../app/app_assets.dart';
 import '../../../app/app_theme.dart';
 import '../data/route_repository_provider.dart';
 import '../domain/models/bus_position.dart';
@@ -242,7 +241,7 @@ class _MapPageState extends State<MapPage> {
                   ),
                 ),
                 selectedRoute == null
-                    ? _EmptyMapSummary(routes: visibleRoutes)
+                    ? const _EmptyMapSummary()
                     : _MapSummary(
                         route: selectedRoute,
                         buses: _buses,
@@ -274,9 +273,7 @@ class _MapPageState extends State<MapPage> {
 }
 
 class _EmptyMapSummary extends StatelessWidget {
-  const _EmptyMapSummary({required this.routes});
-
-  final List<TransitRoute> routes;
+  const _EmptyMapSummary();
 
   @override
   Widget build(BuildContext context) {
@@ -284,26 +281,9 @@ class _EmptyMapSummary extends StatelessWidget {
       color: Theme.of(context).cardTheme.color,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Elige un transporte para ver su recorrido',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Image.asset(AppAssets.mascot, width: 46),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '${routes.length} rutas de ejemplo registradas en El Alto.',
-                  ),
-                ),
-              ],
-            ),
-          ],
+        child: Text(
+          'Elige un transporte para ver su recorrido',
+          style: Theme.of(context).textTheme.titleMedium,
         ),
       ),
     );

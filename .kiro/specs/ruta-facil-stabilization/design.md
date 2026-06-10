@@ -191,11 +191,9 @@ PARA TODA sesión de grabación iniciada en El Alto:
 
 ---
 
-### CAMBIO 2 — Bug: Grabación en segundo plano se suspende en Android 14+
+### CAMBIO 2 — ~~Bug: Grabación en segundo plano~~ ✅ YA IMPLEMENTADO
 
-**Archivo:** `android/app/src/main/AndroidManifest.xml`
-
-**Problema:** Los permisos `FOREGROUND_SERVICE` y `FOREGROUND_SERVICE_LOCATION` ya existen, pero falta la declaración `<service>` que Android 14+ requiere para iniciar el servicio en primer plano del plugin Geolocator.
+> El `<service>` de `GeolocatorLocationService` ya existe en `AndroidManifest.xml` con `foregroundServiceType="location"`. **No hacer nada.**
 
 **Fix — insertar dentro de `<application>`, justo después del cierre `</activity>` y antes del comentario `<!-- Don't delete the meta-data below -->`:**
 
@@ -216,11 +214,16 @@ PARA TODA sesión de grabación iniciada en El Alto:
 
 ---
 
-### CAMBIO 3 — UI: Ocultar "Borrar ruta" para pasajeros
+### ✅ CAMBIO 3 — YA IMPLEMENTADO: Ocultar "Borrar ruta" y "Exportar o compartir ruta" para pasajeros
+
+> **Estado: implementado (2026-06-10).** Alcance ampliado: además de "Borrar ruta", también
+> se oculta "Exportar o compartir ruta" cuando `isCollectorMode == false` (decisión del
+> usuario — los pasajeros no deben poder exportar/compartir el archivo de la ruta).
+> "Reportar cambio o problema" sigue visible para todos.
 
 **Archivo:** `lib/features/routes/presentation/route_detail_page.dart`
 
-**Problema:** El botón "Borrar ruta" actualmente se muestra a todos los usuarios. Un pasajero no debe poder borrar rutas del catálogo recolectado.
+**Problema (resuelto):** Los botones "Borrar ruta" y "Exportar o compartir ruta" se mostraban a todos los usuarios. Un pasajero no debe poder borrar rutas del catálogo recolectado ni exportar/compartir el archivo de una ruta.
 
 **Contexto del archivo:**
 - `RouteDetailPage` es un `StatefulWidget` con `_RouteDetailPageState`
@@ -242,7 +245,18 @@ PARA TODA sesión de grabación iniciada en El Alto:
 ```
 
 ```diff
-           const SizedBox(height: 12),
+           OutlinedButton.icon(
+             onPressed: _showReportDialog,
+             icon: PhosphorIcon(PhosphorIcons.warning()),
+             label: const Text('Reportar cambio o problema'),
+           ),
+-          const SizedBox(height: 12),
+-          OutlinedButton.icon(
+-            onPressed: _exportRoute,
+-            icon: PhosphorIcon(PhosphorIcons.shareNetwork()),
+-            label: const Text('Exportar o compartir ruta'),
+-          ),
+-          const SizedBox(height: 12),
 -          OutlinedButton.icon(
 -            onPressed: _confirmDeleteRoute,
 -            icon: PhosphorIcon(PhosphorIcons.trash()),
@@ -251,7 +265,14 @@ PARA TODA sesión de grabación iniciada en El Alto:
 -              foregroundColor: Theme.of(context).colorScheme.error,
 -            ),
 -          ),
-+          if (settings.isCollectorMode)
++          if (settings.isCollectorMode) ...[
++            const SizedBox(height: 12),
++            OutlinedButton.icon(
++              onPressed: _exportRoute,
++              icon: PhosphorIcon(PhosphorIcons.shareNetwork()),
++              label: const Text('Exportar o compartir ruta'),
++            ),
++            const SizedBox(height: 12),
 +            OutlinedButton.icon(
 +              onPressed: _confirmDeleteRoute,
 +              icon: PhosphorIcon(PhosphorIcons.trash()),
@@ -260,17 +281,18 @@ PARA TODA sesión de grabación iniciada en El Alto:
 +                foregroundColor: Theme.of(context).colorScheme.error,
 +              ),
 +            ),
++          ],
            const SizedBox(height: 12),
 ```
 
-**Import a agregar** al inicio del archivo (si no existe):
+**Import agregado** al inicio del archivo:
 ```dart
 import '../../../app/ruta_facil_app.dart';
 ```
 
 **Resultado esperado:**
-- `isCollectorMode == false` (pasajero): "Borrar ruta" no aparece. Sí aparecen: "Ver mapa", bookmark, "Reportar", "Exportar".
-- `isCollectorMode == true` (colector): Todo aparece como actualmente.
+- `isCollectorMode == false` (pasajero): "Borrar ruta" y "Exportar o compartir ruta" no aparecen. Sí aparecen: "Ver mapa", bookmark, "Reportar".
+- `isCollectorMode == true` (colector): Todo aparece como antes.
 
 **NO TOCAR:** `_confirmDeleteRoute()`, `_toggleSaved()`, `_showReportDialog()`, `_exportRoute()`, ni ninguna otra acción o widget del detalle.
 
@@ -296,16 +318,17 @@ import '../../../app/ruta_facil_app.dart';
 │ │ Tus líneas   │  │ Ver recorri- │     │
 │ │ guardadas    │  │ dos y buses  │     │
 │ └──────────────┘  └──────────────┘     │
-│                                         │
-│ ┌─────────────────────────────────────┐ │
-│ │ 🕐  Disponibles ahora               │ │  ← _AvailableNowCard → AvailableNowPage
-│ │     N líneas circulando ahora    >  │ │
-│ └─────────────────────────────────────┘ │
 └─────────────────────────────────────────┘
 
 AUSENTE en modo pasajero:
   ✗ Card "Grabar ruta" (HeroActionCard roja)
   ✗ Card grilla "Grabadas"
+
+NOTA (2026-06-10): la card "Disponibles ahora" (`_AvailableNowCard` /
+`AvailableNowPage`) fue ELIMINADA del proyecto — no era funcional
+(siempre mostraba las mismas 2 rutas por un bug en
+`RouteScheduleRule.appliesAt` con `weekdays: []`). Ya no existe en
+ningún modo.
 ```
 
 ### 3.2 HomePage — modo colector (`isCollectorMode = true`)
@@ -334,7 +357,6 @@ AUSENTE en modo pasajero:
 
 AUSENTE en modo colector:
   ✗ Card "Rutas favoritas"
-  ✗ Card "Disponibles ahora"
 ```
 
 ### 3.3 RouteDetailPage — acciones por modo
@@ -344,8 +366,8 @@ MODO PASAJERO (isCollectorMode = false):
 ┌─────────────────────────────────────────┐
 │ [Ver mapa]          [🔖 bookmark toggle] │  ← FilledButton + IconButton
 │ [Reportar cambio o problema           ] │  ← OutlinedButton
-│ [Exportar o compartir ruta            ] │  ← OutlinedButton
 │                                         │
+│ ✗ "Exportar o compartir ruta" NO aparece │  ← OCULTO
 │ ✗ "Borrar ruta" NO aparece             │  ← OCULTO
 └─────────────────────────────────────────┘
 
@@ -353,7 +375,7 @@ MODO COLECTOR (isCollectorMode = true):
 ┌─────────────────────────────────────────┐
 │ [Ver mapa]          [🔖 bookmark toggle] │
 │ [Reportar cambio o problema           ] │
-│ [Exportar o compartir ruta            ] │
+│ [Exportar o compartir ruta            ] │  ← OutlinedButton — VISIBLE
 │ [🗑️ Borrar ruta                        ] │  ← OutlinedButton rojo — VISIBLE
 └─────────────────────────────────────────┘
 ```
@@ -391,7 +413,8 @@ main.dart
                                   → bifurca UI según valor
                  └─ SettingsPage → llama settings.setCollectorMode(true/false)
                                    → notifyListeners() → AnimatedBuilder rebuild
-                 └─ RouteDetailPage → [PENDIENTE] leer isCollectorMode
+                 └─ RouteDetailPage → lee AppSettingsScope.of(context).isCollectorMode
+                                  → bifurca "Exportar o compartir ruta" y "Borrar ruta"
 ```
 
 ---
@@ -405,9 +428,11 @@ main.dart
 | `_HeroActionCard` "Grabar ruta" | `home_page.dart` | `isCollectorMode == true` | ✅ Implementado |
 | Card "Grabadas" (grilla) | `home_page.dart` | `isCollectorMode == true` | ✅ Implementado |
 | Card "Rutas favoritas" (grilla) | `home_page.dart` | `isCollectorMode == false` | ✅ Implementado |
-| `_AvailableNowCard` | `home_page.dart` | `isCollectorMode == false` | ✅ Implementado |
+| ~~`_AvailableNowCard`~~ | ~~`home_page.dart`~~ | — | 🗑️ **ELIMINADO** (2026-06-10, no funcional) |
 | Toggle "Modo colector" | `settings_page.dart` | Siempre visible | ✅ Implementado |
-| Botón "Borrar ruta" | `route_detail_page.dart` | `isCollectorMode == true` | ❌ **PENDIENTE** |
+| Declaración `<service>` Geolocator | `AndroidManifest.xml` | Siempre | ✅ Implementado |
+| Botón "Borrar ruta" | `route_detail_page.dart` | `isCollectorMode == true` | ✅ Implementado (2026-06-10) |
+| Botón "Exportar o compartir ruta" | `route_detail_page.dart` | `isCollectorMode == true` | ✅ Implementado (2026-06-10) |
 
 ---
 
@@ -428,10 +453,12 @@ AndroidManifest.xml CONTIENE:
            android:exported="false" />
 ```
 
-### P3 — UI Borrar Ruta (Cambio 3)
+### P3 — UI Borrar Ruta / Exportar Ruta (Cambio 3)
 ```
 PARA TODO widget tree donde isCollectorMode == false:
   find('Borrar ruta').isEmpty == true
+  find('Exportar o compartir ruta').isEmpty == true
+  find('Reportar cambio o problema').isNotEmpty == true
 
 PARA TODO widget tree donde isCollectorMode == true:
   find('Borrar ruta').isNotEmpty == true
