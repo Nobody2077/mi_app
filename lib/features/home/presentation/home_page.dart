@@ -106,7 +106,7 @@ class HomePage extends StatelessWidget {
             onTap: goSearch,
             child: AbsorbPointer(
               child: SearchBar(
-                hintText: 'Ej. 204, Rio Seco, UPEA, Villa Adela',
+                hintText: 'Buscar destino o línea',
                 leading: PhosphorIcon(PhosphorIcons.magnifyingGlass()),
                 trailing: [PhosphorIcon(PhosphorIcons.caretRight(), size: 14)],
               ),
