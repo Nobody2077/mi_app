@@ -46,7 +46,9 @@ class HomePage extends StatelessWidget {
         ),
       _HomeOption(
         title: 'Mapa',
-        subtitle: 'Ver recorridos y buses simulados',
+        subtitle: settings.isCollectorMode
+            ? 'Ver recorridos y buses en el mapa'
+            : 'Encuentra buses y rutas cerca de ti',
         icon: PhosphorIcons.mapTrifold(),
         color: AppTheme.trufi,
         onTap: () => Navigator.of(context).push(
