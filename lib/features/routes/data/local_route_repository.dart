@@ -35,6 +35,42 @@ class LocalRouteRepository implements RouteRepository {
       assetPath: 'assets/routes/ruta_facil_204_manual-1779759085763.json',
       saveRoute: true,
     ),
+    _BundledRouteSeed(
+      routeId: 'manual-1780681007729',
+      metadataKey: 'seeded_route_manual_1780681007729',
+      assetPath: 'assets/routes/ruta_facil_650_manual-1780681007729.json',
+      saveRoute: true,
+    ),
+    _BundledRouteSeed(
+      routeId: 'manual-1780507997735',
+      metadataKey: 'seeded_route_manual_1780507997735',
+      assetPath: 'assets/routes/ruta_facil_no_tiene_manual-1780507997735.json',
+      saveRoute: true,
+    ),
+    _BundledRouteSeed(
+      routeId: 'manual-1780335193749',
+      metadataKey: 'seeded_route_manual_1780335193749',
+      assetPath: 'assets/routes/ruta_facil_no_tiene_manual-1780335193749.json',
+      saveRoute: true,
+    ),
+    _BundledRouteSeed(
+      routeId: 'manual-1780278889286',
+      metadataKey: 'seeded_route_manual_1780278889286',
+      assetPath: 'assets/routes/ruta_facil_no_tiene_manual-1780278889286.json',
+      saveRoute: true,
+    ),
+    _BundledRouteSeed(
+      routeId: 'manual-1780191045580',
+      metadataKey: 'seeded_route_manual_1780191045580',
+      assetPath: 'assets/routes/ruta_facil_204_manual-1780191045580.json',
+      saveRoute: true,
+    ),
+    _BundledRouteSeed(
+      routeId: 'manual-1780143888829',
+      metadataKey: 'seeded_route_manual_1780143888829',
+      assetPath: 'assets/routes/ruta_facil_809_manual-1780143888829.json',
+      saveRoute: true,
+    ),
   ];
 
   Database? _database;

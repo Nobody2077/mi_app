@@ -1,0 +1,612 @@
+{
+  "schema_version": 1,
+  "exported_at": "2026-06-09T15:11:38.455434",
+  "source": "ruta_facil_el_alto",
+  "route": {
+    "id": "manual-1780191045580",
+    "name": "Arequipa, Huayña Potosí, Pte. Chino",
+    "transport_type": "minibus",
+    "transport_label": "Minibus",
+    "syndicate": "Desconocido",
+    "line": "204",
+    "origin": "Ballivian",
+    "destination": "Parada 204",
+    "fare_bs": 2.0,
+    "service_hours": "21:18 - 21:30",
+    "description": "",
+    "average_speed_kmh": 16.452972972972976,
+    "is_official": false,
+    "variation_reason": "Bloqueo/marcha: no llega hasta su parada",
+    "created_at": "2026-05-30T21:30:45.580358",
+    "recorded_started_at": "2026-05-30T21:18:11.978329",
+    "recorded_ended_at": "2026-05-30T21:30:32.367595"
+  },
+  "stops": [
+    {
+      "order": 0,
+      "name": "Final Castillo"
+    }
+  ],
+  "points": [
+    {
+      "order": 0,
+      "latitude": -16.488293,
+      "longitude": -68.171335
+    },
+    {
+      "order": 1,
+      "latitude": -16.48798,
+      "longitude": -68.17131
+    },
+    {
+      "order": 2,
+      "latitude": -16.488022,
+      "longitude": -68.1715
+    },
+    {
+      "order": 3,
+      "latitude": -16.488158,
+      "longitude": -68.17153
+    },
+    {
+      "order": 4,
+      "latitude": -16.488318,
+      "longitude": -68.171572
+    },
+    {
+      "order": 5,
+      "latitude": -16.488202,
+      "longitude": -68.171548
+    },
+    {
+      "order": 6,
+      "latitude": -16.488028,
+      "longitude": -68.171722
+    },
+    {
+      "order": 7,
+      "latitude": -16.48801,
+      "longitude": -68.171898
+    },
+    {
+      "order": 8,
+      "latitude": -16.487952,
+      "longitude": -68.172133
+    },
+    {
+      "order": 9,
+      "latitude": -16.487847,
+      "longitude": -68.172382
+    },
+    {
+      "order": 10,
+      "latitude": -16.48776,
+      "longitude": -68.172597
+    },
+    {
+      "order": 11,
+      "latitude": -16.487667,
+      "longitude": -68.172863
+    },
+    {
+      "order": 12,
+      "latitude": -16.48755,
+      "longitude": -68.173127
+    },
+    {
+      "order": 13,
+      "latitude": -16.487462,
+      "longitude": -68.173337
+    },
+    {
+      "order": 14,
+      "latitude": -16.487417,
+      "longitude": -68.173527
+    },
+    {
+      "order": 15,
+      "latitude": -16.487353,
+      "longitude": -68.173718
+    },
+    {
+      "order": 16,
+      "latitude": -16.487343,
+      "longitude": -68.174002
+    },
+    {
+      "order": 17,
+      "latitude": -16.487177,
+      "longitude": -68.174213
+    },
+    {
+      "order": 18,
+      "latitude": -16.487083,
+      "longitude": -68.174443
+    },
+    {
+      "order": 19,
+      "latitude": -16.487003,
+      "longitude": -68.174718
+    },
+    {
+      "order": 20,
+      "latitude": -16.486953,
+      "longitude": -68.175035
+    },
+    {
+      "order": 21,
+      "latitude": -16.486925,
+      "longitude": -68.175208
+    },
+    {
+      "order": 22,
+      "latitude": -16.486983,
+      "longitude": -68.175513
+    },
+    {
+      "order": 23,
+      "latitude": -16.486998,
+      "longitude": -68.175677
+    },
+    {
+      "order": 24,
+      "latitude": -16.48696,
+      "longitude": -68.175858
+    },
+    {
+      "order": 25,
+      "latitude": -16.486918,
+      "longitude": -68.176195
+    },
+    {
+      "order": 26,
+      "latitude": -16.48674,
+      "longitude": -68.176565
+    },
+    {
+      "order": 27,
+      "latitude": -16.486612,
+      "longitude": -68.176727
+    },
+    {
+      "order": 28,
+      "latitude": -16.48652,
+      "longitude": -68.176947
+    },
+    {
+      "order": 29,
+      "latitude": -16.486452,
+      "longitude": -68.177163
+    },
+    {
+      "order": 30,
+      "latitude": -16.486303,
+      "longitude": -68.177378
+    },
+    {
+      "order": 31,
+      "latitude": -16.486158,
+      "longitude": -68.177575
+    },
+    {
+      "order": 32,
+      "latitude": -16.486025,
+      "longitude": -68.177743
+    },
+    {
+      "order": 33,
+      "latitude": -16.486007,
+      "longitude": -68.177968
+    },
+    {
+      "order": 34,
+      "latitude": -16.485955,
+      "longitude": -68.178133
+    },
+    {
+      "order": 35,
+      "latitude": -16.485912,
+      "longitude": -68.178343
+    },
+    {
+      "order": 36,
+      "latitude": -16.485783,
+      "longitude": -68.178652
+    },
+    {
+      "order": 37,
+      "latitude": -16.48561,
+      "longitude": -68.179025
+    },
+    {
+      "order": 38,
+      "latitude": -16.485457,
+      "longitude": -68.179378
+    },
+    {
+      "order": 39,
+      "latitude": -16.485397,
+      "longitude": -68.179515
+    },
+    {
+      "order": 40,
+      "latitude": -16.485287,
+      "longitude": -68.179703
+    },
+    {
+      "order": 41,
+      "latitude": -16.485235,
+      "longitude": -68.179823
+    },
+    {
+      "order": 42,
+      "latitude": -16.485147,
+      "longitude": -68.17993
+    },
+    {
+      "order": 43,
+      "latitude": -16.485065,
+      "longitude": -68.180212
+    },
+    {
+      "order": 44,
+      "latitude": -16.484923,
+      "longitude": -68.180517
+    },
+    {
+      "order": 45,
+      "latitude": -16.48476,
+      "longitude": -68.180835
+    },
+    {
+      "order": 46,
+      "latitude": -16.484577,
+      "longitude": -68.181185
+    },
+    {
+      "order": 47,
+      "latitude": -16.484395,
+      "longitude": -68.181372
+    },
+    {
+      "order": 48,
+      "latitude": -16.484278,
+      "longitude": -68.181655
+    },
+    {
+      "order": 49,
+      "latitude": -16.484163,
+      "longitude": -68.182002
+    },
+    {
+      "order": 50,
+      "latitude": -16.484013,
+      "longitude": -68.182345
+    },
+    {
+      "order": 51,
+      "latitude": -16.483912,
+      "longitude": -68.182578
+    },
+    {
+      "order": 52,
+      "latitude": -16.483787,
+      "longitude": -68.182855
+    },
+    {
+      "order": 53,
+      "latitude": -16.483642,
+      "longitude": -68.183187
+    },
+    {
+      "order": 54,
+      "latitude": -16.483477,
+      "longitude": -68.183548
+    },
+    {
+      "order": 55,
+      "latitude": -16.483272,
+      "longitude": -68.183962
+    },
+    {
+      "order": 56,
+      "latitude": -16.48313,
+      "longitude": -68.184263
+    },
+    {
+      "order": 57,
+      "latitude": -16.483067,
+      "longitude": -68.184388
+    },
+    {
+      "order": 58,
+      "latitude": -16.482938,
+      "longitude": -68.18459
+    },
+    {
+      "order": 59,
+      "latitude": -16.482778,
+      "longitude": -68.184928
+    },
+    {
+      "order": 60,
+      "latitude": -16.48259,
+      "longitude": -68.18537
+    },
+    {
+      "order": 61,
+      "latitude": -16.482383,
+      "longitude": -68.185805
+    },
+    {
+      "order": 62,
+      "latitude": -16.48226,
+      "longitude": -68.186142
+    },
+    {
+      "order": 63,
+      "latitude": -16.482172,
+      "longitude": -68.186295
+    },
+    {
+      "order": 64,
+      "latitude": -16.482077,
+      "longitude": -68.186472
+    },
+    {
+      "order": 65,
+      "latitude": -16.482017,
+      "longitude": -68.186635
+    },
+    {
+      "order": 66,
+      "latitude": -16.481988,
+      "longitude": -68.18683
+    },
+    {
+      "order": 67,
+      "latitude": -16.481943,
+      "longitude": -68.186937
+    },
+    {
+      "order": 68,
+      "latitude": -16.481703,
+      "longitude": -68.187017
+    },
+    {
+      "order": 69,
+      "latitude": -16.481515,
+      "longitude": -68.186917
+    },
+    {
+      "order": 70,
+      "latitude": -16.481402,
+      "longitude": -68.186828
+    },
+    {
+      "order": 71,
+      "latitude": -16.481283,
+      "longitude": -68.186687
+    },
+    {
+      "order": 72,
+      "latitude": -16.481125,
+      "longitude": -68.186763
+    },
+    {
+      "order": 73,
+      "latitude": -16.480915,
+      "longitude": -68.186942
+    },
+    {
+      "order": 74,
+      "latitude": -16.480625,
+      "longitude": -68.187172
+    },
+    {
+      "order": 75,
+      "latitude": -16.480317,
+      "longitude": -68.187415
+    },
+    {
+      "order": 76,
+      "latitude": -16.480205,
+      "longitude": -68.18752
+    },
+    {
+      "order": 77,
+      "latitude": -16.480062,
+      "longitude": -68.187633
+    },
+    {
+      "order": 78,
+      "latitude": -16.479812,
+      "longitude": -68.18783
+    },
+    {
+      "order": 79,
+      "latitude": -16.479512,
+      "longitude": -68.188057
+    },
+    {
+      "order": 80,
+      "latitude": -16.479235,
+      "longitude": -68.188288
+    },
+    {
+      "order": 81,
+      "latitude": -16.47893,
+      "longitude": -68.188532
+    },
+    {
+      "order": 82,
+      "latitude": -16.47858,
+      "longitude": -68.188792
+    },
+    {
+      "order": 83,
+      "latitude": -16.478295,
+      "longitude": -68.189055
+    },
+    {
+      "order": 84,
+      "latitude": -16.47817,
+      "longitude": -68.189127
+    },
+    {
+      "order": 85,
+      "latitude": -16.47786,
+      "longitude": -68.18935
+    },
+    {
+      "order": 86,
+      "latitude": -16.477552,
+      "longitude": -68.189592
+    },
+    {
+      "order": 87,
+      "latitude": -16.477205,
+      "longitude": -68.189883
+    },
+    {
+      "order": 88,
+      "latitude": -16.476785,
+      "longitude": -68.190187
+    },
+    {
+      "order": 89,
+      "latitude": -16.476532,
+      "longitude": -68.190408
+    },
+    {
+      "order": 90,
+      "latitude": -16.476252,
+      "longitude": -68.190642
+    },
+    {
+      "order": 91,
+      "latitude": -16.475945,
+      "longitude": -68.19091
+    },
+    {
+      "order": 92,
+      "latitude": -16.475728,
+      "longitude": -68.191117
+    },
+    {
+      "order": 93,
+      "latitude": -16.475502,
+      "longitude": -68.191285
+    },
+    {
+      "order": 94,
+      "latitude": -16.47527,
+      "longitude": -68.191562
+    },
+    {
+      "order": 95,
+      "latitude": -16.47498,
+      "longitude": -68.191885
+    },
+    {
+      "order": 96,
+      "latitude": -16.474693,
+      "longitude": -68.192178
+    },
+    {
+      "order": 97,
+      "latitude": -16.47454,
+      "longitude": -68.192348
+    },
+    {
+      "order": 98,
+      "latitude": -16.474382,
+      "longitude": -68.192612
+    },
+    {
+      "order": 99,
+      "latitude": -16.474135,
+      "longitude": -68.192973
+    },
+    {
+      "order": 100,
+      "latitude": -16.473875,
+      "longitude": -68.19335
+    },
+    {
+      "order": 101,
+      "latitude": -16.47378,
+      "longitude": -68.19351
+    },
+    {
+      "order": 102,
+      "latitude": -16.473745,
+      "longitude": -68.193628
+    },
+    {
+      "order": 103,
+      "latitude": -16.473653,
+      "longitude": -68.193765
+    },
+    {
+      "order": 104,
+      "latitude": -16.47356,
+      "longitude": -68.193865
+    },
+    {
+      "order": 105,
+      "latitude": -16.473458,
+      "longitude": -68.194043
+    },
+    {
+      "order": 106,
+      "latitude": -16.47332,
+      "longitude": -68.194325
+    },
+    {
+      "order": 107,
+      "latitude": -16.473065,
+      "longitude": -68.194752
+    },
+    {
+      "order": 108,
+      "latitude": -16.472832,
+      "longitude": -68.19522
+    },
+    {
+      "order": 109,
+      "latitude": -16.472633,
+      "longitude": -68.195492
+    },
+    {
+      "order": 110,
+      "latitude": -16.472477,
+      "longitude": -68.195557
+    }
+  ],
+  "fare_rules": [
+    {
+      "label": "Tarifa base",
+      "destination": "Parada 204",
+      "fare_bs": 2.0,
+      "weekdays": [],
+      "start_hour": 0,
+      "end_hour": 23
+    }
+  ],
+  "schedule_rules": [
+    {
+      "name": "Regla especial",
+      "weekdays": [
+        6
+      ],
+      "start_hour": 6,
+      "end_hour": 23,
+      "note": "Bloqueo/marcha: no llega hasta su parada",
+      "active_destination": "Antes del Puente Chino",
+      "path_point_limit": null,
+      "fare_override_bs": null
+    }
+  ],
+  "reports": []
+}
