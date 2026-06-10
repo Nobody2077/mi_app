@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../app/app_assets.dart';
 import '../data/route_repository_provider.dart';
@@ -79,27 +80,36 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
     });
   }
 
-  Iterable<String> _suggestions(String text) {
+  Iterable<String> _originSuggestions(String text) {
     final query = text.trim().toLowerCase();
-    final values = <String>{};
+    if (query.isEmpty) return const [];
 
+    final values = <String>{};
     for (final route in _routes.where(
       (route) =>
           _selectedTransportType == null ||
           route.transportType == _selectedTransportType,
     )) {
-      values.addAll([
-        route.name,
-        route.origin,
-        route.destination,
-        route.transportType.label,
-        route.syndicate,
-        route.line,
-        ...route.stops,
-      ]);
+      values.add(route.origin);
+      values.addAll(route.stops);
     }
 
-    if (query.isEmpty) return values.take(8);
+    return values.where((value) => value.toLowerCase().contains(query)).take(8);
+  }
+
+  Iterable<String> _destinationSuggestions(String text) {
+    final query = text.trim().toLowerCase();
+    if (query.isEmpty) return const [];
+
+    final values = <String>{};
+    for (final route in _routes.where(
+      (route) =>
+          _selectedTransportType == null ||
+          route.transportType == _selectedTransportType,
+    )) {
+      values.add(route.destination);
+      values.addAll(route.stops);
+    }
 
     return values.where((value) => value.toLowerCase().contains(query)).take(8);
   }
@@ -115,7 +125,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
             child: Column(
               children: [
                 Autocomplete<String>(
-                  optionsBuilder: (value) => _suggestions(value.text),
+                  optionsBuilder: (value) => _originSuggestions(value.text),
                   onSelected: _searchOrigin,
                   fieldViewBuilder:
                       (context, controller, focusNode, onFieldSubmitted) {
@@ -124,16 +134,16 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                           focusNode: focusNode,
                           onChanged: _searchOrigin,
                           onSubmitted: (_) => onFieldSubmitted(),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Estoy en...',
-                            prefixIcon: Icon(Icons.my_location_outlined),
+                            prefixIcon: PhosphorIcon(PhosphorIcons.crosshair()),
                           ),
                         );
                       },
                 ),
                 const SizedBox(height: 12),
                 Autocomplete<String>(
-                  optionsBuilder: (value) => _suggestions(value.text),
+                  optionsBuilder: (value) => _destinationSuggestions(value.text),
                   onSelected: _searchDestination,
                   fieldViewBuilder:
                       (context, controller, focusNode, onFieldSubmitted) {
@@ -142,9 +152,9 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                           focusNode: focusNode,
                           onChanged: _searchDestination,
                           onSubmitted: (_) => onFieldSubmitted(),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Quiero ir a...',
-                            prefixIcon: Icon(Icons.search),
+                            prefixIcon: PhosphorIcon(PhosphorIcons.magnifyingGlass()),
                           ),
                         );
                       },
@@ -180,6 +190,8 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
+                      avatar: Icon(_iconFor(type), size: 16),
+                      showCheckmark: false,
                       label: Text(type.label),
                       selected: _selectedTransportType == type,
                       onSelected: (_) => _selectTransportType(type),
@@ -203,7 +215,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                           '${route.transportType.label} ${route.line} - '
                           '${route.stops.join(' -> ')}',
                         ),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: PhosphorIcon(PhosphorIcons.caretRight()),
                         onTap: () async {
                           await Navigator.of(context).push(
                             MaterialPageRoute(
@@ -223,9 +235,9 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
 
   IconData _iconFor(TransportType type) {
     return switch (type) {
-      TransportType.minibus => Icons.airport_shuttle,
-      TransportType.trufi => Icons.local_taxi,
-      TransportType.micro => Icons.directions_bus,
+      TransportType.minibus => PhosphorIcons.van(),
+      TransportType.trufi => PhosphorIcons.taxi(),
+      TransportType.micro => PhosphorIcons.bus(),
     };
   }
 }
