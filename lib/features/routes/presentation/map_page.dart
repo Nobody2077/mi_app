@@ -11,7 +11,6 @@ import '../domain/models/transit_route.dart';
 import '../domain/repositories/route_repository.dart';
 import '../domain/services/deviation_detector.dart';
 import '../domain/services/eta_service.dart';
-import '../domain/services/road_route_service.dart';
 import '../domain/services/route_availability_service.dart';
 import 'add_route_page.dart';
 import 'route_detail_page.dart';
@@ -31,17 +30,14 @@ class _MapPageState extends State<MapPage> {
   final RouteRepository _repository = RouteRepositoryProvider.instance;
   final _etaService = const EtaService();
   final _deviationDetector = const DeviationDetector();
-  final _roadRouteService = const RoadRouteService();
   final _availabilityService = const RouteAvailabilityService();
 
   List<TransitRoute> _routes = [];
   List<BusPosition> _buses = [];
-  List<LatLng> _displayPath = [];
   RouteAvailabilityInfo? _activeInfo;
   TransitRoute? _selectedRoute;
   TransportType? _selectedTransportType;
   bool _isLoading = true;
-  bool _isRoadSnapped = false;
 
   List<TransitRoute> get _visibleRoutes {
     if (_selectedTransportType == null) return _routes;
@@ -82,9 +78,6 @@ class _MapPageState extends State<MapPage> {
   Future<void> _showRoute(TransitRoute route) async {
     final buses = await _repository.getBusPositions(route.id);
     final activeInfo = _availabilityService.evaluate(route, DateTime.now());
-    final displayPath = await _roadRouteService.snapToRoads(
-      activeInfo.activePath,
-    );
 
     if (!mounted) return;
 
@@ -92,9 +85,7 @@ class _MapPageState extends State<MapPage> {
       _selectedRoute = route;
       _selectedTransportType = route.transportType;
       _buses = buses;
-      _displayPath = displayPath;
       _activeInfo = activeInfo;
-      _isRoadSnapped = displayPath.length > activeInfo.activePath.length;
     });
   }
 
@@ -106,9 +97,7 @@ class _MapPageState extends State<MapPage> {
           _selectedRoute!.transportType != type) {
         _selectedRoute = null;
         _buses = [];
-        _displayPath = [];
         _activeInfo = null;
-        _isRoadSnapped = false;
       }
     });
   }
@@ -222,10 +211,7 @@ class _MapPageState extends State<MapPage> {
                         PolylineLayer(
                           polylines: [
                             Polyline(
-                              points: _displayPath.isEmpty
-                                  ? (activeInfo?.activePath ??
-                                        selectedRoute.path)
-                                  : _displayPath,
+                              points: activeInfo?.activePath ?? selectedRoute.path,
                               color: Colors.blue,
                               strokeWidth: 5,
                             ),
@@ -234,17 +220,6 @@ class _MapPageState extends State<MapPage> {
                       if (selectedRoute != null)
                         MarkerLayer(
                           markers: [
-                            for (final point
-                                in activeInfo?.activePath ?? selectedRoute.path)
-                              Marker(
-                                point: point,
-                                width: 42,
-                                height: 42,
-                                child: PhosphorIcon(
-                                  PhosphorIcons.mapPin(PhosphorIconsStyle.fill),
-                                  color: Colors.orange,
-                                ),
-                              ),
                             for (final bus in _buses)
                               Marker(
                                 point: bus.location,
@@ -272,7 +247,6 @@ class _MapPageState extends State<MapPage> {
                         route: selectedRoute,
                         buses: _buses,
                         eta: _etaService.estimateArrival(selectedRoute),
-                        isRoadSnapped: _isRoadSnapped,
                         activeInfo: activeInfo,
                         onOpenDetail: () {
                           Navigator.of(context)
@@ -341,7 +315,6 @@ class _MapSummary extends StatelessWidget {
     required this.route,
     required this.buses,
     required this.eta,
-    required this.isRoadSnapped,
     required this.activeInfo,
     required this.onOpenDetail,
   });
@@ -349,7 +322,6 @@ class _MapSummary extends StatelessWidget {
   final TransitRoute route;
   final List<BusPosition> buses;
   final Duration eta;
-  final bool isRoadSnapped;
   final RouteAvailabilityInfo? activeInfo;
   final VoidCallback onOpenDetail;
 
@@ -385,7 +357,7 @@ class _MapSummary extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'Bs ${(activeInfo?.fareBs ?? route.fareBs).toStringAsFixed(1)} - ${route.serviceHours} - '
-              '${buses.length} buses - ${isRoadSnapped ? 'ruta por calles' : 'ruta manual'}',
+              '${buses.length} buses',
             ),
             if (route.recordedStartedAt != null) ...[
               const SizedBox(height: 6),
@@ -409,7 +381,6 @@ class _MapSummary extends StatelessWidget {
               runSpacing: 8,
               children: [
                 const _LegendItem(color: Colors.blue, label: 'Recorrido'),
-                const _LegendItem(color: Colors.orange, label: 'Parada'),
                 const _LegendItem(color: Colors.green, label: 'Bus activo'),
                 TextButton.icon(
                   onPressed: onOpenDetail,
