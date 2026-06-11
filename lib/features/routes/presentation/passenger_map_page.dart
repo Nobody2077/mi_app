@@ -474,6 +474,14 @@ class _PassengerRouteSummary extends StatelessWidget {
   final Color color;
   final VoidCallback onOpenDetail;
 
+  IconData get _transportIcon {
+    return switch (route.transportType) {
+      TransportType.minibus => PhosphorIcons.van(),
+      TransportType.trufi => PhosphorIcons.taxi(),
+      TransportType.micro => PhosphorIcons.bus(),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -507,9 +515,17 @@ class _PassengerRouteSummary extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                Chip(label: Text(route.transportType.label)),
-                Chip(label: Text('Bs ${activeInfo.fareBs.toStringAsFixed(1)}')),
-                Chip(label: Text(route.serviceHours)),
+                Chip(
+                  avatar: Icon(_transportIcon, size: 16, color: color),
+                  label: Text(route.transportType.label),
+                ),
+                Chip(
+                  label: Text(
+                    'Pasaje: Bs ${activeInfo.fareBs.toStringAsFixed(1)}',
+                  ),
+                ),
+                // El horario (route.serviceHours) se oculta al pasajero:
+                // es un dato de campo grabado por el colector, sin validar.
               ],
             ),
             if (activeInfo.isModified) ...[

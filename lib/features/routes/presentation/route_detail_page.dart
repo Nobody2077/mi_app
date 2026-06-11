@@ -115,6 +115,7 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
     final eta = _etaService.estimateArrival(route);
     final activeInfo = _availabilityService.evaluate(route, DateTime.now());
     final settings = AppSettingsScope.of(context);
+    final isPassenger = !settings.isCollectorMode;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detalle de ruta')),
@@ -152,22 +153,31 @@ class _RouteDetailPageState extends State<RouteDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text('Tarifa: Bs ${route.fareBs.toStringAsFixed(1)}'),
-                  Text(
-                    'Tarifa actual: Bs ${activeInfo.fareBs.toStringAsFixed(1)}',
-                  ),
+                  if (isPassenger) ...[
+                    Text('Tarifa: Bs ${activeInfo.fareBs.toStringAsFixed(1)}'),
+                    if (activeInfo.fareBs != route.fareBs)
+                      Text(
+                        'Tarifa normal: Bs ${route.fareBs.toStringAsFixed(1)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                  ] else ...[
+                    Text('Tarifa: Bs ${route.fareBs.toStringAsFixed(1)}'),
+                    Text(
+                      'Tarifa actual: Bs ${activeInfo.fareBs.toStringAsFixed(1)}',
+                    ),
+                  ],
                   Text('Horario: ${route.serviceHours}'),
                   Text('Tiempo estimado: ${eta.inMinutes} min'),
                   Text(
                     route.isOfficial ? 'Ruta oficial' : 'Ruta no verificada',
                   ),
-                  if (route.recordedStartedAt != null)
+                  if (!isPassenger && route.recordedStartedAt != null)
                     Text(
                       'Grabacion: ${_formatDateTime(route.recordedStartedAt!)}',
                     ),
-                  if (route.recordedEndedAt != null)
+                  if (!isPassenger && route.recordedEndedAt != null)
                     Text('Fin: ${_formatDateTime(route.recordedEndedAt!)}'),
-                  if (route.variationReason.isNotEmpty)
+                  if (!isPassenger && route.variationReason.isNotEmpty)
                     Text('Causa observada: ${route.variationReason}'),
                   const SizedBox(height: 12),
                   Text(route.description),
