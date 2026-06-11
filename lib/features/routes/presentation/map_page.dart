@@ -13,6 +13,7 @@ import '../domain/services/eta_service.dart';
 import '../domain/services/route_availability_service.dart';
 import 'add_route_page.dart';
 import 'route_detail_page.dart';
+import 'widgets/bus_marker.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({this.initialRouteId, super.key});
@@ -222,10 +223,15 @@ class _MapPageState extends State<MapPage> {
                             for (final bus in _buses)
                               Marker(
                                 point: bus.location,
-                                width: 54,
-                                height: 54,
-                                child: Icon(
-                                  _iconFor(selectedRoute.transportType),
+                                width: 48,
+                                height: 48,
+                                alignment: Alignment.topCenter,
+                                child: BusMarker(
+                                  size: 48,
+                                  icon: _iconFor(
+                                    selectedRoute.transportType,
+                                    PhosphorIconsStyle.fill,
+                                  ),
                                   color:
                                       _deviationDetector.isOutsideRoute(
                                         bus.location,
@@ -263,11 +269,14 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  IconData _iconFor(TransportType type) {
+  IconData _iconFor(
+    TransportType type, [
+    PhosphorIconsStyle style = PhosphorIconsStyle.regular,
+  ]) {
     return switch (type) {
-      TransportType.minibus => PhosphorIcons.van(),
-      TransportType.trufi => PhosphorIcons.taxi(),
-      TransportType.micro => PhosphorIcons.bus(),
+      TransportType.minibus => PhosphorIcons.van(style),
+      TransportType.trufi => PhosphorIcons.taxi(style),
+      TransportType.micro => PhosphorIcons.bus(style),
     };
   }
 }

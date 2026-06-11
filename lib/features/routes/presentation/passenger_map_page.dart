@@ -14,6 +14,7 @@ import '../domain/services/eta_service.dart';
 import '../domain/services/nearby_bus_service.dart';
 import '../domain/services/route_availability_service.dart';
 import 'route_detail_page.dart';
+import 'widgets/bus_marker.dart';
 
 enum _LocationStatus { loading, granted, denied, serviceDisabled }
 
@@ -115,11 +116,14 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
     });
   }
 
-  IconData _iconFor(TransportType type) {
+  IconData _iconFor(
+    TransportType type, [
+    PhosphorIconsStyle style = PhosphorIconsStyle.regular,
+  ]) {
     return switch (type) {
-      TransportType.minibus => PhosphorIcons.van(),
-      TransportType.trufi => PhosphorIcons.taxi(),
-      TransportType.micro => PhosphorIcons.bus(),
+      TransportType.minibus => PhosphorIcons.van(style),
+      TransportType.trufi => PhosphorIcons.taxi(style),
+      TransportType.micro => PhosphorIcons.bus(style),
     };
   }
 
@@ -243,10 +247,15 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
                     for (final bus in _busesByRoute[selectedRoute.id] ?? const [])
                       Marker(
                         point: bus.location,
-                        width: 38,
-                        height: 38,
-                        child: Icon(
-                          _iconFor(selectedRoute.transportType),
+                        width: 48,
+                        height: 48,
+                        alignment: Alignment.topCenter,
+                        child: BusMarker(
+                          size: 48,
+                          icon: _iconFor(
+                            selectedRoute.transportType,
+                            PhosphorIconsStyle.fill,
+                          ),
                           color:
                               _deviationDetector.isOutsideRoute(
                                 bus.location,
@@ -254,7 +263,6 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
                               )
                               ? Colors.red
                               : Colors.green,
-                          size: 30,
                         ),
                       ),
                   ],
@@ -265,14 +273,17 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
                     for (final nearby in _nearbyBuses)
                       Marker(
                         point: nearby.bus.location,
-                        width: 38,
-                        height: 38,
+                        width: 42,
+                        height: 42,
+                        alignment: Alignment.topCenter,
                         child: GestureDetector(
                           onTap: () => _selectRoute(nearby.route),
-                          child: Icon(
-                            _iconFor(nearby.route.transportType),
+                          child: BusMarker(
+                            icon: _iconFor(
+                              nearby.route.transportType,
+                              PhosphorIconsStyle.fill,
+                            ),
                             color: _colorFor(nearby.route.transportType),
-                            size: 30,
                           ),
                         ),
                       ),
