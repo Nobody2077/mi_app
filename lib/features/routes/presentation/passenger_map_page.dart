@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -5,6 +7,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/geo_utils.dart';
 import '../data/route_repository_provider.dart';
 import '../domain/models/bus_position.dart';
 import '../domain/models/transit_route.dart';
@@ -30,6 +34,13 @@ class PassengerMapPage extends StatefulWidget {
 class _PassengerMapPageState extends State<PassengerMapPage> {
   static const _elAltoCenter = LatLng(-16.5046, -68.1730);
 
+  /// Distancia a partir de la cual se considera que el pasajero esta lejos
+  /// de la ruta y se le ofrece la guia "Como llegar".
+  static const double _farFromRouteMeters = 400;
+
+  /// Velocidad de caminata (~5 km/h) en metros por minuto.
+  static const double _walkingMetersPerMinute = 83.3;
+
   final RouteRepository _repository = RouteRepositoryProvider.instance;
   final _nearbyBusService = const NearbyBusService();
   final _etaService = const EtaService();
@@ -39,6 +50,10 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
 
   LatLng? _userLocation;
   _LocationStatus _locationStatus = _LocationStatus.loading;
+
+  StreamSubscription<Position>? _positionStream;
+  bool _isFollowing = false;
+  bool _showApproachLine = false;
 
   List<TransitRoute> _routes = [];
   Map<String, List<BusPosition>> _busesByRoute = {};
@@ -54,6 +69,12 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
     super.initState();
     _loadRoutes();
     _resolveUserLocation();
+  }
+
+  @override
+  void dispose() {
+    _positionStream?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadRoutes() async {
@@ -100,6 +121,7 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
   }
 
   void _selectRoute(TransitRoute route) {
+    _stopTrip();
     setState(() {
       _selectedRoute = route;
       _activeInfo = _availabilityService.evaluate(route, DateTime.now());
@@ -110,10 +132,58 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
   }
 
   void _clearSelection() {
+    _stopTrip();
     setState(() {
       _selectedRoute = null;
       _activeInfo = null;
     });
+  }
+
+  void _startTrip() {
+    final location = _userLocation;
+    setState(() {
+      _isFollowing = true;
+      _showApproachLine = true;
+    });
+    if (location != null) {
+      _mapController.move(location, 16);
+    }
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+      ),
+    ).listen((position) {
+      if (!mounted) return;
+      final updated = LatLng(position.latitude, position.longitude);
+      setState(() => _userLocation = updated);
+      _mapController.move(updated, _mapController.camera.zoom);
+    });
+  }
+
+  void _stopTrip() {
+    _positionStream?.cancel();
+    _positionStream = null;
+    if (!_isFollowing && !_showApproachLine) return;
+    setState(() {
+      _isFollowing = false;
+      _showApproachLine = false;
+    });
+  }
+
+  /// Punto del recorrido mas cercano al pasajero (punto de abordaje).
+  LatLng? _nearestPathPoint(LatLng from, List<LatLng> path) {
+    if (path.isEmpty) return null;
+    var nearest = path.first;
+    var best = double.infinity;
+    for (final point in path) {
+      final distance = GeoUtils.distanceInMeters(from, point);
+      if (distance < best) {
+        best = distance;
+        nearest = point;
+      }
+    }
+    return nearest;
   }
 
   IconData _iconFor(
@@ -190,6 +260,18 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
         ? const <LatLng>[]
         : (activeInfo?.activePath ?? selectedRoute.path);
 
+    final userLocation = _userLocation;
+    final distanceToRoute =
+        selectedPath.isNotEmpty && userLocation != null
+            ? GeoUtils.distanceToPolylineInMeters(userLocation, selectedPath)
+            : null;
+    final approachPoint = _showApproachLine &&
+            userLocation != null &&
+            distanceToRoute != null &&
+            distanceToRoute > _farFromRouteMeters
+        ? _nearestPathPoint(userLocation, selectedPath)
+        : null;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(selectedRoute?.name ?? 'Mapa'),
@@ -264,6 +346,36 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
                           PhosphorIconsStyle.fill,
                         ),
                         color: _colorFor(selectedRoute.transportType),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (approachPoint != null && userLocation != null) ...[
+                PolylineLayer(
+                  polylines: [
+                    // Guia "Como llegar": linea recta punteada hasta el
+                    // punto de abordaje (no es ruta por calles).
+                    Polyline(
+                      points: [userLocation, approachPoint],
+                      color: Colors.blueGrey,
+                      strokeWidth: 3,
+                      isDotted: true,
+                    ),
+                  ],
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: approachPoint,
+                      width: 16,
+                      height: 16,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.blueGrey, width: 3),
+                        ),
                       ),
                     ),
                   ],
@@ -369,6 +481,16 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
                     ),
                   ],
                 ],
+                if (selectedRoute != null && distanceToRoute != null)
+                  _TripStatusCard(
+                    distanceMeters: distanceToRoute,
+                    isFollowing: _isFollowing,
+                    isFar: distanceToRoute > _farFromRouteMeters,
+                    walkingMinutes:
+                        (distanceToRoute / _walkingMetersPerMinute).ceil(),
+                    onStart: _startTrip,
+                    onStop: _stopTrip,
+                  ),
                 if (_locationStatus != _LocationStatus.granted) ...[
                   const SizedBox(height: 8),
                   _LocationBanner(
@@ -541,6 +663,85 @@ class _PassengerRouteSummary extends StatelessWidget {
               icon: PhosphorIcon(PhosphorIcons.info()),
               label: const Text('Ver detalle'),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TripStatusCard extends StatelessWidget {
+  const _TripStatusCard({
+    required this.distanceMeters,
+    required this.isFollowing,
+    required this.isFar,
+    required this.walkingMinutes,
+    required this.onStart,
+    required this.onStop,
+  });
+
+  final double distanceMeters;
+  final bool isFollowing;
+  final bool isFar;
+  final int walkingMinutes;
+  final VoidCallback onStart;
+  final VoidCallback onStop;
+
+  String get _formattedDistance => distanceMeters >= 1000
+      ? '${(distanceMeters / 1000).toStringAsFixed(1)} km'
+      : '${distanceMeters.round()} m';
+
+  @override
+  Widget build(BuildContext context) {
+    final IconData icon;
+    final Color? iconColor;
+    final String message;
+    final String actionLabel;
+    final VoidCallback action;
+
+    if (!isFollowing) {
+      icon = isFar
+          ? PhosphorIcons.personSimpleWalk()
+          : PhosphorIcons.gpsFix();
+      iconColor = null;
+      message = isFar
+          ? 'Estás a $_formattedDistance de esta ruta.'
+          : 'Estás cerca de la ruta.';
+      actionLabel = isFar ? 'Cómo llegar' : 'Seguir mi viaje';
+      action = onStart;
+    } else if (isFar) {
+      icon = PhosphorIcons.personSimpleWalk();
+      iconColor = null;
+      message =
+          'Punto de abordaje a $_formattedDistance (~$walkingMinutes min a pie).';
+      actionLabel = 'Detener';
+      action = onStop;
+    } else {
+      final onRoute =
+          distanceMeters <= AppConstants.deviationThresholdMeters;
+      icon = onRoute
+          ? PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)
+          : PhosphorIcons.warning(PhosphorIconsStyle.fill);
+      iconColor = onRoute ? AppTheme.trufi : AppTheme.modified;
+      message = onRoute
+          ? 'Vas por la ruta.'
+          : 'Te estás alejando de la ruta ($_formattedDistance).';
+      actionLabel = 'Detener';
+      action = onStop;
+    }
+
+    return Material(
+      elevation: 2,
+      borderRadius: BorderRadius.circular(8),
+      color: Theme.of(context).cardTheme.color,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          children: [
+            PhosphorIcon(icon, size: 20, color: iconColor),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+            TextButton(onPressed: action, child: Text(actionLabel)),
           ],
         ),
       ),
