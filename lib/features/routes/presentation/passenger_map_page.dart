@@ -186,6 +186,9 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
   Widget build(BuildContext context) {
     final selectedRoute = _selectedRoute;
     final activeInfo = _activeInfo;
+    final selectedPath = selectedRoute == null
+        ? const <LatLng>[]
+        : (activeInfo?.activePath ?? selectedRoute.path);
 
     return Scaffold(
       appBar: AppBar(
@@ -210,37 +213,62 @@ class _PassengerMapPageState extends State<PassengerMapPage> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.mi_app',
               ),
-              if (selectedRoute != null)
+              if (selectedRoute != null && selectedPath.isNotEmpty) ...[
                 PolylineLayer(
                   polylines: [
+                    // Borde blanco bajo la linea de color para que la ruta
+                    // resalte sobre las calles del mapa.
                     Polyline(
-                      points: activeInfo?.activePath ?? selectedRoute.path,
+                      points: selectedPath,
+                      color: Colors.white,
+                      strokeWidth: 9,
+                    ),
+                    Polyline(
+                      points: selectedPath,
                       color: _colorFor(selectedRoute.transportType),
                       strokeWidth: 5,
                     ),
                   ],
                 ),
-              if (selectedRoute != null)
                 MarkerLayer(
                   markers: [
-                    for (final point
-                        in activeInfo?.activePath ?? selectedRoute.path)
-                      Marker(
-                        point: point,
-                        width: 14,
-                        height: 14,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _colorFor(
-                              selectedRoute.transportType,
-                            ).withValues(alpha: 0.9),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                    Marker(
+                      point: selectedPath.first,
+                      width: 20,
+                      height: 20,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: _colorFor(selectedRoute.transportType),
+                            width: 4,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
                       ),
+                    ),
+                    Marker(
+                      point: selectedPath.last,
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.topCenter,
+                      child: BusMarker(
+                        size: 40,
+                        icon: PhosphorIcons.flagCheckered(
+                          PhosphorIconsStyle.fill,
+                        ),
+                        color: _colorFor(selectedRoute.transportType),
+                      ),
+                    ),
                   ],
                 ),
+              ],
               if (selectedRoute != null)
                 MarkerLayer(
                   markers: [
